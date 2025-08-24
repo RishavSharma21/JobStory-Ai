@@ -1,18 +1,37 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom"; // Added import
 
 const Home = ({ onResumeUpload, setJobRole }) => {
   const [jobRoleInput, setJobRoleInput] = useState("");
   const [isUploaded, setIsUploaded] = useState(false);
+  const [fileName, setFileName] = useState(""); // Added state for file name
+  const navigate = useNavigate(); // Added hook
 
   const handleSubmit = () => {
     if (jobRoleInput.trim() && isUploaded) {
       setJobRole(jobRoleInput);
+      
+      // Create mock resume data for analysis page
+      const mockResumeData = {
+        name: fileName || "My_Resume.pdf",
+        role: jobRoleInput,
+        uploadDate: new Date().toISOString(),
+      };
+      
+      // Navigate to analyze page with mock data
+      navigate('/analyze', { 
+        state: { 
+          resumeData: mockResumeData,
+          jobRole: jobRoleInput 
+        }
+      });
     }
   };
 
   const handleFileUpload = (file) => {
     onResumeUpload(file);
     setIsUploaded(true);
+    setFileName(file.name); // Store file name
   };
 
   const quickJobs = [
@@ -106,6 +125,13 @@ const Home = ({ onResumeUpload, setJobRole }) => {
                   </div>
                 </div>
               </div>
+
+              {/* File name display */}
+              {fileName && (
+                <div className="file-name-display">
+                  📄 {fileName}
+                </div>
+              )}
 
               {/* Suggestions */}
               <div className="suggestions-row">
@@ -206,7 +232,7 @@ const Home = ({ onResumeUpload, setJobRole }) => {
             <div className="step">
               <div className="step-number">2</div>
               <h3>Select Your Target Role</h3>
-              <p>Tell us the role you want — we’ll personalize your preparation.</p>
+              <p>Tell us the role you want — we'll personalize your preparation.</p>
             </div>
 
             <div className="step-arrow">→</div>
