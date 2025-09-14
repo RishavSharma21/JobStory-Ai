@@ -83,7 +83,7 @@
 .file-icon svg {
     width: 20px;
     height: 20px;
-    color: #4a9eff;
+    color: #ffffff;
 }
 
 .resume-details {
@@ -114,7 +114,7 @@
 }
 
 .job-title {
-    color: #4a9eff;
+    color: #74a5dd;
     font-weight: 500;
 }
 
@@ -148,13 +148,13 @@
 }
 
 .score {
-    background: rgba(74, 158, 255, 0.15);
-    color: #4a9eff;
+    background: rgba(57, 75, 91, 0.15);
+    color: #4579b5;
     padding: 0.5rem 1rem;
     border-radius: 8px;
     font-weight: 600;
     font-size: 0.9rem;
-    border: 1px solid rgba(74, 158, 255, 0.2);
+    border: 1px solid rgba(60, 131, 212, 0.2);
     min-width: 60px;
     text-align: center;
 }

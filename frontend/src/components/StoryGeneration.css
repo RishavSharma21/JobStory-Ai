@@ -1,0 +1,666 @@
+/* Reset & Base Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background-color: #1a1a1a;
+    color: #ffffff;
+    line-height: 1.7;
+    overflow-x: hidden;
+  }
+  
+  /* Page Container */
+  .analysis-page {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    animation: fadeIn 0.8s ease-out;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  /* Header */
+  .page-header {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem;
+    animation: slideDown 0.6s ease-out;
+  }
+  
+  @keyframes slideDown {
+    from { transform: translateY(-100%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  
+  .page-title {
+    font-size: 2rem;
+    font-weight: 600;
+    color: #ffffff;
+    letter-spacing: -0.02em;
+  }
+
+  /* Add this to your existing CSS */
+.header-content {
+    text-align: center;
+  }
+  
+  .job-info {
+    font-size: 1.1rem;
+    color: #cccccc;
+    margin-top: 0.5rem;
+    font-weight: 400;
+  }
+  
+  .job-role {
+    color: #3b82f6;
+    font-weight: 500;
+  }
+  
+  .resume-name {
+    color: #999999;
+    font-style: italic;
+  }
+  
+  .separator {
+    color: #666666;
+    margin: 0 0.5rem;
+  }
+  
+  /* Update page-title margin if needed */
+  .page-title {
+    font-size: 2rem;
+    font-weight: 600;
+    color: #ffffff;
+    letter-spacing: -0.02em;
+    margin-bottom: 0.5rem;
+  }
+  
+  /* Single Main Container - Everything wrapped together */
+  .main-container {
+    background-color: #1e1e1e;
+    border: 1px solid #333333;
+    border-radius: 12px;
+    margin: 2rem auto;
+    max-width: 1200px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    animation: fadeInUp 0.8s ease-out 0.2s both;
+  }
+  
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  /* Main Content */
+  .page-content {
+    padding: 2.5rem;
+    width: 100%;
+  }
+  
+  /* Main Analysis Section */
+  .main-analysis {
+    display: flex;
+    flex-direction: column;
+    gap: 2.5rem;
+  }
+  
+  /* Analysis Grid (Two Columns) */
+  .analysis-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2.5rem;
+  }
+  
+  /* Analysis Cards */
+  .analysis-card {
+    background-color: #252525;
+    border: 1px solid #333333;
+    border-radius: 8px;
+    padding: 2rem;
+    transition: all 0.3s ease;
+    animation: fadeIn 0.6s ease-out;
+  }
+  
+  .analysis-card:nth-child(1) { animation-delay: 0.1s; }
+  .analysis-card:nth-child(2) { animation-delay: 0.2s; }
+  
+  .analysis-card:hover {
+    border-color: #e5e7eb;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+    transform: translateY(-2px);
+  }
+  
+  .analysis-card h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #e5e7eb;
+    margin-bottom: 1.5rem;
+    letter-spacing: -0.01em;
+    position: relative;
+    display: inline-block;
+  }
+  
+  .analysis-card h2::after {
+    content: '';
+    position: absolute;
+    bottom: -8px;
+    left: 0;
+    width: 50px;
+    height: 3px;
+    background-color: #3b82f6;
+    animation: expandLine 0.6s ease-out 0.3s both;
+  }
+  
+  @keyframes expandLine {
+    from { transform: scaleX(0); transform-origin: left; }
+    to { transform: scaleX(1); transform-origin: left; }
+  }
+  
+  /* ATS Card */
+  .ats-card {
+    animation: fadeInLeft 0.8s ease-out 0.3s both;
+  }
+  
+  @keyframes fadeInLeft {
+    from { opacity: 0; transform: translateX(-30px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  
+  .score-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+  
+  .score-display {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+  }
+  
+  .score-number {
+    font-size: 3rem;
+    font-weight: 700;
+    color: #ffffff;
+    font-feature-settings: "tnum";
+    animation: subtlePulse 3s infinite;
+  }
+  
+  @keyframes subtlePulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+  }
+  
+  .score-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .match-level {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #3b82f6;
+  }
+  
+  .score-percent {
+    font-size: 1rem;
+    color: #cccccc;
+    font-weight: 400;
+  }
+  
+  .progress-container {
+    width: 100%;
+    height: 8px;
+    background-color: #333333;
+    overflow: hidden;
+    border-radius: 4px;
+  }
+  
+  .progress-bar {
+    height: 100%;
+    background-color: #3b82f6;
+    transition: width 1.2s ease;
+    border-radius: 4px;
+    animation: fillBar 1.5s ease-out 0.5s both;
+  }
+  
+  @keyframes fillBar {
+    from { width: 0; }
+    to { width: var(--target-width, 78%); }
+  }
+  
+  .score-explanation {
+    color: #e2e2e2;
+    font-size: 1.1rem;
+    line-height: 1.7;
+    font-weight: 400;
+  }
+  
+  /* Insights Card */
+  .insights-card {
+    animation: fadeInRight 0.8s ease-out 0.4s both;
+  }
+  
+  @keyframes fadeInRight {
+    from { opacity: 0; transform: translateX(30px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  
+  .insights-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+  
+  .recruiter-quote {
+    color: #ffffff;
+    line-height: 1.8;
+    border-left: 3px solid #3b82f6;
+    padding-left: 1.5rem;
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 400;
+    font-style: normal;
+  }
+  
+  .quote-attribution {
+    color: #3b82f6;
+    font-size: 1rem;
+    font-weight: 500;
+    text-align: right;
+  }
+  
+  /* Professional Assessment Section */
+  .professional-assessment {
+    animation: fadeInUp 0.8s ease-out 0.5s both;
+  }
+  
+  .assessment-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+  }
+  
+  .assessment-column {
+    padding: 1.5rem 0;
+  }
+  
+  .assessment-column h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #ffffff;
+    margin-bottom: 1.5rem;
+    letter-spacing: -0.01em;
+    text-align: left;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #333333;
+  }
+  
+  /* Strengths Section */
+  .strengths-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  
+  .strength-column h4 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #3b82f6;
+    margin-bottom: 0.75rem;
+    letter-spacing: -0.01em;
+    text-align: left;
+  }
+  
+  .strength-items {
+    list-style: none;
+  }
+  
+  .strength-items li {
+    color: #cccccc;
+    font-size: 1.05rem;
+    margin-bottom: 0.75rem;
+    line-height: 1.6;
+    padding-left: 1.25rem;
+    position: relative;
+    transition: all 0.2s ease;
+  }
+  
+  .strength-items li::before {
+    content: '•';
+    position: absolute;
+    left: 0;
+    color: #3b82f6;
+    font-weight: 700;
+  }
+  
+  .strength-items li:hover {
+    color: #ffffff;
+    transform: translateX(5px);
+  }
+  
+  /* Growth Areas Section */
+  .growth-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  
+  .growth-column h4 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #f59e0b; /* Orange for growth areas */
+    margin-bottom: 0.75rem;
+    letter-spacing: -0.01em;
+    text-align: left;
+  }
+  
+  .growth-items {
+    list-style: none;
+  }
+  
+  .growth-items li {
+    color: #cccccc;
+    font-size: 1.05rem;
+    margin-bottom: 0.75rem;
+    line-height: 1.6;
+    padding-left: 1.25rem;
+    position: relative;
+    transition: all 0.2s ease;
+  }
+  
+  .growth-items li::before {
+    content: '•';
+    position: absolute;
+    left: 0;
+    color: #f59e0b;
+    font-weight: 700;
+  }
+  
+  .growth-items li:hover {
+    color: #ffffff;
+    transform: translateX(5px);
+  }
+  
+/* Features Section */
+.features-card {
+    animation: fadeInUp 0.8s ease-out 0.6s both;
+  }
+  
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+  }
+  
+  .feature-item {
+    background-color: #252525;
+    border: 1px solid #333333;
+    padding: 2rem;
+    text-align: center;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    animation: fadeIn 0.6s ease-out;
+    opacity: 0.7; /* Make them slightly less prominent */
+  }
+  
+  .feature-item:nth-child(1) { animation-delay: 0.1s; }
+  .feature-item:nth-child(2) { animation-delay: 0.2s; }
+  .feature-item:nth-child(3) { animation-delay: 0.3s; }
+  
+  .feature-item h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #999999; /* Slightly muted color */
+    margin-bottom: 1rem;
+    letter-spacing: -0.01em;
+  }
+  
+  .feature-item p {
+    color: #777777; /* More muted color */
+    font-size: 1rem;
+    margin-bottom: 1.5rem;
+    line-height: 1.6;
+  }
+  
+  .coming-soon {
+    display: inline-block;
+    background-color: #252525;
+    color: #e5e7eb;
+    font-size: 0.875rem;
+    padding: 0.5rem 1rem;
+    font-weight: 500;
+    border: 1px solid #e5e7eb;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: all 0.2s ease;
+  }
+  
+  /* Action Buttons */
+  .action-buttons {
+    display: flex;
+    gap: 1.5rem;
+    justify-content: center;
+    margin: 3.5rem 0 2rem 0;
+    flex-wrap: wrap;
+    animation: fadeIn 1s ease-out 0.8s both;
+  }
+  
+  .btn {
+    padding: 1rem 2rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 1.1rem;
+    background-color: #252525;
+    color: #ffffff;
+    border-radius: 6px;
+    border: 1px solid #333333;
+    min-width: 200px;
+    text-align: center;
+    letter-spacing: -0.01em;
+  }
+  
+  .btn:hover {
+    background-color: rgba(229, 231, 235, 0.1);
+    border-color: #e5e7eb;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
+  }
+  
+  .btn-primary {
+    background-color: #3b82f6;
+    border: 1px solid #3b82f6;
+    color: white;
+    font-weight: 500;
+  }
+  
+  .btn-primary:hover {
+    background-color: #2563eb;
+    border-color: #2563eb;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.3);
+  }
+  
+  .btn-secondary {
+    background-color: #252525;
+    border: 1px solid #3b82f6;
+    color: #3b82f6;
+  }
+  
+  .btn-secondary:hover {
+    background-color: rgba(59, 130, 246, 0.1);
+    border-color: #3b82f6;
+    color: #3b82f6;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.2);
+  }
+  
+  .btn-tertiary {
+    background-color: #252525;
+    border: 1px solid #444444;
+    color: #cccccc;
+  }
+  
+  .btn-tertiary:hover {
+    background-color: rgba(229, 231, 235, 0.08);
+    border-color: #555555;
+    color: #e5e7eb;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
+  }
+  
+  /* Footer */
+  .page-footer {
+    background-color: #1e1e1e;
+    border-top: 1px solid #333333;
+    padding: 1.5rem 2rem;
+    animation: fadeIn 1s ease-out 1s both;
+  }
+  
+  .footer-content {
+    text-align: center;
+    color: #999999;
+    font-size: 1rem;
+    font-weight: 400;
+  }
+  
+  /* Responsive Design */
+  @media (max-width: 1024px) {
+    .page-content {
+      padding: 2rem;
+    }
+    
+    .analysis-grid {
+      grid-template-columns: 1fr;
+      gap: 2rem;
+    }
+    
+    .assessment-grid {
+      grid-template-columns: 1fr;
+      gap: 2rem;
+    }
+    
+    .features-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+    
+    .score-number {
+      font-size: 2.5rem;
+    }
+    
+    .page-title {
+      font-size: 1.75rem;
+    }
+  }
+  
+  @media (max-width: 768px) {
+    .page-header {
+      padding: 1.5rem;
+    }
+    
+    .main-container {
+      margin: 1.5rem;
+      border-radius: 8px;
+    }
+    
+    .page-content {
+      padding: 1.5rem;
+    }
+    
+    .analysis-card {
+      padding: 1.5rem;
+    }
+    
+    .features-grid {
+      grid-template-columns: 1fr;
+    }
+    
+    .action-buttons {
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+    }
+    
+    .btn {
+      width: 100%;
+      max-width: 300px;
+    }
+    
+    .score-display {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+    
+    .assessment-grid {
+      grid-template-columns: 1fr;
+    }
+    
+    .page-title {
+      font-size: 1.5rem;
+    }
+    
+    .analysis-card h2 {
+      font-size: 1.25rem;
+    }
+    
+    .score-number {
+      font-size: 2rem;
+    }
+    
+    .match-level {
+      font-size: 1.1rem;
+    }
+    
+    .score-explanation,
+    .recruiter-quote {
+      font-size: 1rem;
+    }
+    
+    .strength-items li,
+    .growth-items li {
+      font-size: 0.95rem;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .page-header {
+      padding: 1rem;
+    }
+    
+    .main-container {
+      margin: 1rem;
+    }
+    
+    .page-content {
+      padding: 1rem;
+    }
+    
+    .analysis-card {
+      padding: 1.25rem;
+    }
+    
+    .assessment-column h3 {
+      font-size: 1.1rem;
+    }
+    
+    .strength-column h4,
+    .growth-column h4 {
+      font-size: 1rem;
+    }
+    
+    .feature-item {
+      padding: 1.5rem;
+    }
+  }

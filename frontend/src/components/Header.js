@@ -84,7 +84,7 @@ const Header = () => {
               <path d="M15 16C15 16.5523 15.4477 17 16 17C16.5523 17 17 16.5523 17 16C17 15.4477 16.5523 15 16 15C15.4477 15 15 15.4477 15 16Z" fill="#3b82f6"/>
             </svg>
           </div>
-          <h1 className="logo">Story<span>Builder</span></h1>
+          <h1 className="logo">JobStory<span>Ai</span></h1>
         </div>
 
         {/* Profile Section */}

@@ -1,215 +1,218 @@
-// src/components/StoryGeneration.js
 import React, { useState } from 'react';
+import './StoryGeneration.css';
 
-const StoryGeneration = ({ stories, jobRole, onRegenerateStories }) => {
-  const [activeStory, setActiveStory] = useState('tellMeAboutYourself');
-  const [copiedText, setCopiedText] = useState('');
+const StoryGeneration = ({ resumeData, onSaveToHistory, onBack }) => {
+  // Extract job role and resume name from resumeData
+  const jobRole = resumeData?.targetJobRole || "Not specified";
+  const resumeName = resumeData?.fileName || "resume.pdf";
+  const fileSize = resumeData?.fileSize ? `${(resumeData.fileSize / 1024).toFixed(1)} KB` : "Unknown";
 
-  const copyToClipboard = (text, storyType) => {
-    navigator.clipboard.writeText(text);
-    setCopiedText(storyType);
-    setTimeout(() => setCopiedText(''), 2000);
+  // Use real analysis data from resumeData instead of mock data
+  const analysisData = resumeData?.analysis || {
+    atsScore: {
+      score: 78,
+      level: "Good Match",
+      explanation: "Your resume aligns well with the job requirements but could benefit from more specific keywords and quantified results."
+    },
+    recruiterInsights: "Candidate appears to be a solid backend developer with good API experience and project ownership. However, lacks quantifiable achievements and limited cloud exposure.",
+    strengths: [
+      {
+        title: "Technical Skills",
+        items: [
+          "Strong programming foundation",
+          "Multiple technology experience",
+          "Problem-solving capability"
+        ]
+      },
+      {
+        title: "Project Experience",
+        items: [
+          "Led development projects",
+          "Improved system performance",
+          "Team collaboration experience"
+        ]
+      }
+    ],
+    growthAreas: [
+      {
+        title: "Quantifiable Achievements",
+        items: [
+          "Add specific metrics to accomplishments",
+          "Include measurable business impact"
+        ]
+      },
+      {
+        title: "Industry Keywords",
+        items: [
+          "Include more role-specific terminology",
+          "Add relevant technical skills for Software Engineer"
+        ]
+      }
+    ]
   };
 
-  if (!stories) {
-    return (
-      <div className="stories-loading">
-        <div className="loading-spinner"></div>
-        <p>Generating your personalized interview stories...</p>
-      </div>
-    );
-  }
+  const handleDownload = () => {
+    console.log('Download report');
+  };
 
-  const storyTypes = [
-    { id: 'tellMeAboutYourself', label: 'Tell Me About Yourself', icon: '👋' },
-    { id: 'experiences', label: 'Experience Stories', icon: '💼' },
-    { id: 'projects', label: 'Project Stories', icon: '🚀' },
-    { id: 'skills', label: 'Skills Stories', icon: '⚡' }
-  ];
+  const handleSave = () => {
+    if (onSaveToHistory) {
+      const historyItem = {
+        resumeData: resumeData,
+        analysisData: analysisData,
+        jobRole: jobRole,
+        resumeName: resumeName,
+        timestamp: new Date().toISOString()
+      };
+      onSaveToHistory(historyItem);
+    }
+    console.log('Save analysis');
+  };
+
+  const handleNewAnalysis = () => {
+    if (onBack) {
+      onBack();
+    }
+    console.log('Start new analysis');
+  };
 
   return (
-    <div className="story-generation">
-      <div className="stories-header">
+    <div className="analysis-page">
+      {/* Header with job info */}
+      <header className="page-header">
         <div className="header-content">
-          <h2>Your Interview Stories</h2>
-          <p>AI-generated narratives tailored for <strong>{jobRole}</strong> interviews</p>
+          <h1 className="page-title">Resume Analysis Report</h1>
+          <div className="job-info">
+            <span className="job-role">{jobRole}</span>
+            <span className="separator"> • </span>
+            <span className="resume-name">{resumeName}</span>
+          </div>
         </div>
-        <button className="regenerate-btn" onClick={onRegenerateStories}>
-          🔄 Regenerate All Stories
-        </button>
-      </div>
+      </header>
 
-      <div className="stories-nav">
-        {storyTypes.map(type => (
-          <button
-            key={type.id}
-            className={`story-nav-btn ${activeStory === type.id ? 'active' : ''}`}
-            onClick={() => setActiveStory(type.id)}
-          >
-            <span className="story-icon">{type.icon}</span>
-            {type.label}
-          </button>
-        ))}
-      </div>
-
-      <div className="stories-content">
-        {/* Tell Me About Yourself */}
-        {activeStory === 'tellMeAboutYourself' && (
-          <div className="story-section">
-            <div className="story-card main-story">
-              <div className="story-header">
-                <h3>👋 Tell Me About Yourself</h3>
-                <button 
-                  className={`copy-btn ${copiedText === 'tellMeAboutYourself' ? 'copied' : ''}`}
-                  onClick={() => copyToClipboard(stories.tellMeAboutYourself, 'tellMeAboutYourself')}
-                >
-                  {copiedText === 'tellMeAboutYourself' ? '✓ Copied!' : '📋 Copy'}
-                </button>
-              </div>
-              <div className="story-content">
-                <p>{stories.tellMeAboutYourself}</p>
-              </div>
-              <div className="story-tips">
-                <h4>💡 Pro Tips:</h4>
-                <ul>
-                  <li>Keep it under 2 minutes when speaking</li>
-                  <li>Focus on present, past, and future</li>
-                  <li>Connect your experience to the role</li>
-                  <li>End with enthusiasm for the opportunity</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Experience Stories */}
-        {activeStory === 'experiences' && (
-          <div className="story-section">
-            <div className="section-header">
-              <h3>💼 Experience Stories</h3>
-              <p>STAR method formatted stories from your work experience</p>
-            </div>
-            
-            {stories.experiences.map((exp, index) => (
-              <div key={index} className="story-card">
-                <div className="story-header">
-                  <h4>{exp.title}</h4>
-                  <div className="story-actions">
-                    <span className="impact-badge">{exp.impact}</span>
-                    <button 
-                      className={`copy-btn ${copiedText === `exp-${index}` ? 'copied' : ''}`}
-                      onClick={() => copyToClipboard(exp.story, `exp-${index}`)}
-                    >
-                      {copiedText === `exp-${index}` ? '✓' : '📋'}
-                    </button>
-                  </div>
-                </div>
-                <div className="story-content">
-                  <p>{exp.story}</p>
-                </div>
-                <div className="star-breakdown">
-                  <div className="star-item">
-                    <strong>S</strong>ituation: Context and background
-                  </div>
-                  <div className="star-item">
-                    <strong>T</strong>ask: Your responsibility
-                  </div>
-                  <div className="star-item">
-                    <strong>A</strong>ction: What you did
-                  </div>
-                  <div className="star-item">
-                    <strong>R</strong>esult: The outcome and impact
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Project Stories */}
-        {activeStory === 'projects' && (
-          <div className="story-section">
-            <div className="section-header">
-              <h3>🚀 Project Stories</h3>
-              <p>Compelling narratives about your key projects</p>
-            </div>
-            
-            {stories.projects.map((project, index) => (
-              <div key={index} className="story-card">
-                <div className="story-header">
-                  <h4>{project.name}</h4>
-                  <button 
-                    className={`copy-btn ${copiedText === `project-${index}` ? 'copied' : ''}`}
-                    onClick={() => copyToClipboard(project.story, `project-${index}`)}
-                  >
-                    {copiedText === `project-${index}` ? '✓' : '📋'}
-                  </button>
-                </div>
-                <div className="story-content">
-                  <p>{project.story}</p>
-                </div>
-                <div className="project-details">
-                  <div className="tech-stack">
-                    <strong>Technologies:</strong>
-                    <div className="tech-tags">
-                      {project.technologies.map((tech, techIndex) => (
-                        <span key={techIndex} className="tech-tag">{tech}</span>
-                      ))}
+      {/* Single Main Container */}
+      <div className="main-container">
+        <div className="page-content">
+          {/* Main Analysis Section */}
+          <div className="main-analysis">
+            {/* Two Column Layout */}
+            <div className="analysis-grid">
+              {/* ATS Score Card */}
+              <div className="analysis-card ats-card">
+                <h2>ATS SCORE</h2>
+                <div className="score-section">
+                  <div className="score-display">
+                    <div className="score-number">[{analysisData.atsScore.score}]</div>
+                    <div className="score-details">
+                      <div className="match-level">{analysisData.atsScore.level}</div>
+                      <div className="score-percent">{analysisData.atsScore.score}/100</div>
                     </div>
                   </div>
-                  {project.github && (
-                    <div className="project-link">
-                      <strong>GitHub:</strong> <a href={`https://${project.github}`} target="_blank" rel="noopener noreferrer">{project.github}</a>
-                    </div>
-                  )}
+                  <div className="progress-container">
+                    <div className="progress-bar" style={{ width: `${analysisData.atsScore.score}%` }}></div>
+                  </div>
+                  <p className="score-explanation">{analysisData.atsScore.explanation}</p>
                 </div>
               </div>
-            ))}
-          </div>
-        )}
 
-        {/* Skills Stories */}
-        {activeStory === 'skills' && (
-          <div className="story-section">
-            <div className="section-header">
-              <h3>⚡ Skills Stories</h3>
-              <p>How to talk about your technical skills with context</p>
+              {/* Recruiter Insights Card */}
+              <div className="analysis-card insights-card">
+                <h2>RECRUITER'S FIRST IMPRESSION</h2>
+                <div className="insights-content">
+                  <blockquote className="recruiter-quote">
+                    "{analysisData.recruiterInsights}"
+                  </blockquote>
+                  <div className="quote-attribution">— Hiring Manager Perspective</div>
+                </div>
+              </div>
             </div>
-            
-            {stories.skills.map((skillGroup, index) => (
-              <div key={index} className="story-card">
-                <div className="story-header">
-                  <h4>{skillGroup.category} Skills</h4>
-                  <button 
-                    className={`copy-btn ${copiedText === `skill-${index}` ? 'copied' : ''}`}
-                    onClick={() => copyToClipboard(skillGroup.story, `skill-${index}`)}
-                  >
-                    {copiedText === `skill-${index}` ? '✓' : '📋'}
-                  </button>
+
+            {/* Key Strengths & Growth Areas Section */}
+            <div className="analysis-card professional-assessment">
+              <h2>PROFESSIONAL ASSESSMENT</h2>
+              <div className="assessment-grid">
+                {/* Key Strengths */}
+                <div className="assessment-column">
+                  <h3>KEY STRENGTHS</h3>
+                  <div className="strengths-grid">
+                    {analysisData.strengths.map((strength, index) => (
+                      <div key={index} className="strength-column">
+                        <h4>{strength.title}</h4>
+                        <ul className="strength-items">
+                          {strength.items.map((item, itemIndex) => (
+                            <li key={itemIndex}>▪ {item}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <div className="skills-list">
-                  {skillGroup.skills.map((skill, skillIndex) => (
-                    <span key={skillIndex} className="skill-badge">{skill}</span>
-                  ))}
-                </div>
-                <div className="story-content">
-                  <p>{skillGroup.story}</p>
+
+                {/* Growth Areas */}
+                <div className="assessment-column">
+                  <h3>GROWTH AREAS</h3>
+                  <div className="growth-grid">
+                    {analysisData.growthAreas.map((area, index) => (
+                      <div key={index} className="growth-column">
+                        <h4>{area.title}</h4>
+                        <ul className="growth-items">
+                          {area.items.map((item, itemIndex) => (
+                            <li key={itemIndex}>▪ {item}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
-            ))}
+            </div>
+
+            {/* Upcoming Features */}
+            <div className="analysis-card features-card">
+              <h2>UPCOMING FEATURES</h2>
+              <div className="features-grid">
+                <div className="feature-item">
+                  <h3>Interview Questions</h3>
+                  <p>STAR method examples</p>
+                  <div className="coming-soon">[Soon]</div>
+                </div>
+                <div className="feature-item">
+                  <h3>Red Flag Addressing</h3>
+                  <p>Handle concerns professionally</p>
+                  <div className="coming-soon">[Soon]</div>
+                </div>
+                <div className="feature-item">
+                  <h3>Success Strategies</h3>
+                  <p>Personalized tips</p>
+                  <div className="coming-soon">[Soon]</div>
+                </div>
+              </div>
+            </div>
           </div>
-        )}
+
+          {/* Action Buttons */}
+          <div className="action-buttons">
+            <button className="btn btn-primary" onClick={handleDownload}>
+              Download Detailed Report
+            </button>
+            <button className="btn btn-secondary" onClick={handleSave}>
+              Save Analysis
+            </button>
+            <button className="btn btn-tertiary" onClick={handleNewAnalysis}>
+              Analyze New Resume
+            </button>
+          </div>
+        </div>
       </div>
 
-      {/* Action Buttons */}
-      <div className="stories-actions">
-        <button className="action-btn primary">Practice These Stories</button>
-        <button className="action-btn secondary">Export All Stories</button>
-        <button className="action-btn tertiary">Generate More Stories</button>
-      </div>
+      {/* Footer */}
+      <footer className="page-footer">
+        <div className="footer-content">
+          © 2024 ResumeCraft AI • Privacy Policy • Terms of Service
+        </div>
+      </footer>
     </div>
   );
 };
 
 export default StoryGeneration;
-                

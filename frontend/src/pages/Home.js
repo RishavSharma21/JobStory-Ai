@@ -1,37 +1,65 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom"; // Added import
+import { useNavigate } from "react-router-dom";
 
-const Home = ({ onResumeUpload, setJobRole }) => {
+const Home = ({ onResumeUpload, setJobRole, onGenerateStory, userResume, jobRole }) => {
   const [jobRoleInput, setJobRoleInput] = useState("");
   const [isUploaded, setIsUploaded] = useState(false);
-  const [fileName, setFileName] = useState(""); // Added state for file name
-  const navigate = useNavigate(); // Added hook
+  const [fileName, setFileName] = useState("");
+  const navigate = useNavigate();
 
+  // ✅ Function for interview answers navigation
   const handleSubmit = () => {
     if (jobRoleInput.trim() && isUploaded) {
       setJobRole(jobRoleInput);
-      
-      // Create mock resume data for analysis page
+
       const mockResumeData = {
         name: fileName || "My_Resume.pdf",
         role: jobRoleInput,
         uploadDate: new Date().toISOString(),
       };
-      
-      // Navigate to analyze page with mock data
-      navigate('/analyze', { 
-        state: { 
+
+      navigate("/analyze", {
+        state: {
           resumeData: mockResumeData,
-          jobRole: jobRoleInput 
-        }
+          jobRole: jobRoleInput,
+        },
       });
     }
   };
 
+  // ✅ New function for story generation
+  const handleGenerateStory = () => {
+    if (jobRoleInput.trim() && isUploaded) {
+      setJobRole(jobRoleInput);
+
+      const resumeDataForStory = {
+        name: fileName || "My_Resume.pdf",
+        fileName: fileName,
+        targetJobRole: jobRoleInput,
+        uploadDate: new Date().toISOString(),
+      };
+
+      onGenerateStory(resumeDataForStory, jobRoleInput);
+      navigate("/generate");
+    } else {
+      if (!isUploaded) {
+        alert("Please upload a resume first!");
+      } else if (!jobRoleInput.trim()) {
+        alert("Please select or enter a job role!");
+      }
+    }
+  };
+
+  // ✅ Handle file upload and trim long names
   const handleFileUpload = (file) => {
     onResumeUpload(file);
     setIsUploaded(true);
-    setFileName(file.name); // Store file name
+    const maxLength = 20;
+    const trimmedName =
+      file.name.length > maxLength
+        ? file.name.substring(0, maxLength) + "..."
+        : file.name;
+    setFileName(trimmedName);
   };
 
   const quickJobs = [
@@ -48,22 +76,18 @@ const Home = ({ onResumeUpload, setJobRole }) => {
         <div className="hero-content">
           <div className="badge">✨ AI-Powered Interview Prep</div>
 
-          {/* Headline */}
           <h1 className="hero-title">
-            Turn Your Resume Into{" "}
-            <span className="text-blue-500">Winning Answers</span> 📈
+            Turn Your Resume Into Your{" "}
+            <span className="text-blue-500">Interview Story</span> 📈
           </h1>
 
-          {/* Subheadline */}
           <p className="hero-description">
             Nervous about interviews? <br />
             Our AI turns your resume into clear, confident answers — so you always know what to say.
           </p>
 
-          {/* DeepSeek-inspired minimalist section */}
           <div className="deepseek-section">
             <div className="deepseek-card">
-              {/* Input + Upload */}
               <div className="input-container">
                 <div className="search-group">
                   <svg
@@ -92,7 +116,7 @@ const Home = ({ onResumeUpload, setJobRole }) => {
                   />
                 </div>
 
-                {/* Upload Button */}
+                {/* ✅ Resume Upload Button */}
                 <div className="upload-group">
                   <div className="upload-btn">
                     <svg
@@ -113,11 +137,17 @@ const Home = ({ onResumeUpload, setJobRole }) => {
                         M14 13v4h-4v-4H7l5-5 5 5h-3z"
                       />
                     </svg>
-                    <span>{isUploaded ? "Resume Uploaded" : "Upload Resume"}</span>
+
+                    {/* ✅ Show file name directly on button */}
+                    <span className="file-label">
+                      {fileName ? fileName : "Upload Resume"}
+                    </span>
+
                     <input
                       type="file"
                       onChange={(e) =>
-                        e.target.files[0] && handleFileUpload(e.target.files[0])
+                        e.target.files[0] &&
+                        handleFileUpload(e.target.files[0])
                       }
                       accept=".pdf,.doc,.docx"
                       className="file-input"
@@ -126,14 +156,7 @@ const Home = ({ onResumeUpload, setJobRole }) => {
                 </div>
               </div>
 
-              {/* File name display */}
-              {fileName && (
-                <div className="file-name-display">
-                  📄 {fileName}
-                </div>
-              )}
-
-              {/* Suggestions */}
+              {/* Quick Suggestions */}
               <div className="suggestions-row">
                 <span className="suggestion-label">Quick Picks: </span>
                 <div className="suggestion-chips">
@@ -151,30 +174,19 @@ const Home = ({ onResumeUpload, setJobRole }) => {
                 </div>
               </div>
 
-              {/* Generate Button */}
-              <button
-                onClick={handleSubmit}
-                className="deepseek-generate-btn"
-                disabled={!jobRoleInput || !isUploaded}
-              >
-                Generate My Interview Answers{" "}
-                <svg
-                  className="arrow-icon"
-                  viewBox="0 0 24 24"
-                  width="18"
-                  height="18"
+              {/* ✅ Generate Button Section */}
+              <div className="generate-buttons-container">
+                <button
+                  onClick={handleGenerateStory}
+                  className="deepseek-generate-btn"
+                  disabled={!jobRoleInput || !isUploaded}
                 >
-                  <path
-                    fill="currentColor"
-                    d="M12 4l-1.41 1.41L16.17 11H4v2h12.17
-                    l-5.58 5.59L12 20l8-8z"
-                  />
-                </svg>
-              </button>
+                 Generate Interview Story
+                </button>
+              </div>
             </div>
           </div>
 
-          {/* Scroll Cue */}
           <div className="scroll-cue">↓ See how it works</div>
         </div>
       </section>
@@ -205,10 +217,10 @@ const Home = ({ onResumeUpload, setJobRole }) => {
 
             <div className="feature-card">
               <div className="feature-header">
-                <h3>Role-Specific Preparation</h3>
+                <h3>Personal Pitch Stories</h3>
               </div>
               <p>
-                Every job is different. Get likely questions, sample answers, and tips — customized for your target role.
+                Get compelling narrative stories that showcase your journey and skills — perfect for "tell me about yourself" moments.
               </p>
             </div>
           </div>
@@ -239,8 +251,8 @@ const Home = ({ onResumeUpload, setJobRole }) => {
 
             <div className="step">
               <div className="step-number">3</div>
-              <h3>Get AI-Crafted Answers</h3>
-              <p>Receive ready-to-use answers and insights tailored to your resume.</p>
+              <h3>Get AI-Crafted Content</h3>
+              <p>Choose between interview answers or pitch stories — both tailored to your resume.</p>
             </div>
 
             <div className="step-arrow">→</div>
