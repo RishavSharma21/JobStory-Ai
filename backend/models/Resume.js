@@ -171,6 +171,33 @@ const resumeSchema = new mongoose.Schema({
   timestamps: true
 });
 
+// Defensive coercion for atsScore.level to allowed enum values
+function coerceAtsLevel(level, score) {
+  const allowed = ['Poor', 'Fair', 'Good', 'Excellent'];
+  if (!level && typeof score === 'number') {
+    const s = Math.max(0, Math.min(100, Number.isFinite(score) ? score : 0));
+    if (s >= 85) return 'Excellent';
+    if (s >= 70) return 'Good';
+    if (s >= 50) return 'Fair';
+    return 'Poor';
+  }
+  if (allowed.includes(level)) return level;
+  const val = String(level || '').toLowerCase();
+  if (val.includes('excellent') || val.includes('top tier') || val.includes('top-tier') || val.includes('outstanding')) return 'Excellent';
+  if (val.includes('strong candidate') || val.includes('very good') || val.includes('ready')) return 'Good';
+  if (val.includes('decent') || val.includes('average') || val.includes('ok') || val.includes('fair')) return 'Fair';
+  if (val.includes('needs work') || val.includes('needs improvement') || val.includes('poor') || val.includes('weak')) return 'Poor';
+  // Unknown/undefined: default conservatively based on score if valid, else 'Fair'
+  if (typeof score === 'number') {
+    const s = Math.max(0, Math.min(100, Number.isFinite(score) ? score : 0));
+    if (s >= 85) return 'Excellent';
+    if (s >= 70) return 'Good';
+    if (s >= 50) return 'Fair';
+    return 'Poor';
+  }
+  return 'Fair';
+}
+
 // Add indexes for better query performance (keep these)
 resumeSchema.index({ uploadedAt: -1 });
 resumeSchema.index({ 'personalInfo.name': 1 });
@@ -180,6 +207,16 @@ resumeSchema.index({ processingStatus: 1 });
 // Pre-save middleware to update lastUpdated (keep this)
 resumeSchema.pre('save', function(next) {
   this.lastUpdated = new Date();
+  next();
+});
+
+// Pre-validate middleware to normalize ATS level before enum validation
+resumeSchema.pre('validate', function(next) {
+  if (this.aiAnalysis && this.aiAnalysis.atsScore) {
+    const s = this.aiAnalysis.atsScore.score;
+    const lvl = this.aiAnalysis.atsScore.level;
+    this.aiAnalysis.atsScore.level = coerceAtsLevel(lvl, s);
+  }
   next();
 });
 

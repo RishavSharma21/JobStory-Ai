@@ -47,25 +47,25 @@ const Analyze = () => {
 
   return (
     <div className="analyze-page">
-      <h1>Resume Analysis</h1>
+      <h1>🎓 Campus Placement Analysis</h1>
       
       <div className="resume-info">
-        <p><strong>Job Role:</strong> {jobRole || "Not specified"}</p>
-        <p><strong>Resume:</strong> {resumeData.fileName}</p>
-        <p><strong>File Size:</strong> {(resumeData.fileSize / 1024).toFixed(1)} KB</p>
+        <p><strong>🎯 Target Role:</strong> {jobRole || "Not specified"}</p>
+        <p><strong>📄 Resume:</strong> {resumeData.fileName}</p>
+        <p><strong>📊 File Size:</strong> {(resumeData.fileSize / 1024).toFixed(1)} KB</p>
       </div>
       
       {!analysisResult && !isAnalyzing && (
         <div className="analysis-prompt">
           <button onClick={handleAnalyze} className="analyze-button">
-            Analyze Resume with AI
+            🚀 Analyze Resume for Campus Placement
           </button>
         </div>
       )}
       
       {isAnalyzing && (
         <div className="analyzing-status">
-          <p>Analyzing your resume with AI...</p>
+          <p>🤖 Analyzing your resume for campus placement readiness...</p>
           <div className="loading-spinner"></div>
         </div>
       )}
@@ -78,45 +78,82 @@ const Analyze = () => {
       
       {analysisResult && (
         <div className="analysis-results">
-          <h2>Analysis Complete</h2>
-          <div className="ats-score">
-            <h3>ATS Compatibility Score</h3>
-            <p><strong>Score:</strong> {analysisResult.analysis.atsScore.score}/100</p>
-            <p><strong>Level:</strong> {analysisResult.analysis.atsScore.level}</p>
-            <p>{analysisResult.analysis.atsScore.explanation}</p>
+          <h2>🎯 Campus Placement Analysis Complete</h2>
+          
+          <div className="campus-readiness-score">
+            <h3>📊 Campus Readiness Score</h3>
+            <p><strong>Score:</strong> {analysisResult.analysis?.campusReadinessScore?.score || analysisResult.analysis?.atsScore?.score || 0}/100</p>
+            <p><strong>Level:</strong> {analysisResult.analysis?.campusReadinessScore?.level || analysisResult.analysis?.atsScore?.level || 'N/A'}</p>
+            <p>{analysisResult.analysis?.campusReadinessScore?.explanation || analysisResult.analysis?.atsScore?.explanation || 'No explanation available'}</p>
           </div>
           
           <div className="recruiter-insights">
-            <h3>Recruiter Insights</h3>
-            <p>{analysisResult.analysis.recruiterInsights}</p>
+            <h3>👨‍💼 Placement Coordinator Insights</h3>
+            <p>{analysisResult.analysis?.recruiterInsights?.overview || 'No insights available'}</p>
           </div>
           
-          <div className="strengths">
-            <h3>Key Strengths</h3>
-            {analysisResult.analysis.strengths.map((strength, index) => (
+          <div className="technical-strengths">
+            <h3>💻 Technical Strengths</h3>
+            {analysisResult.analysis?.recruiterInsights?.technicalStrengths?.map((strength, index) => (
               <div key={index}>
-                <h4>{strength.title}</h4>
-                <ul>
-                  {strength.items.map((item, itemIndex) => (
-                    <li key={itemIndex}>{item}</li>
-                  ))}
-                </ul>
+                <p>• {strength}</p>
               </div>
-            ))}
+            )) || analysisResult.analysis?.recruiterInsights?.keyStrengths?.map((strength, index) => (
+              <div key={index}>
+                <p>• {strength}</p>
+              </div>
+            )) || <p>No technical strengths data available</p>}
           </div>
           
-          <div className="growth-areas">
-            <h3>Growth Areas</h3>
-            {analysisResult.analysis.growthAreas.map((area, index) => (
+          <div className="academic-highlights">
+            <h3>🎓 Academic Highlights</h3>
+            {analysisResult.analysis?.recruiterInsights?.academicHighlights?.map((highlight, index) => (
               <div key={index}>
-                <h4>{area.title}</h4>
-                <ul>
-                  {area.items.map((item, itemIndex) => (
-                    <li key={itemIndex}>{item}</li>
-                  ))}
-                </ul>
+                <p>• {highlight}</p>
               </div>
-            ))}
+            )) || <p>No academic highlights available</p>}
+          </div>
+          
+          <div className="improvement-areas">
+            <h3>🔧 Areas for Improvement</h3>
+            {analysisResult.analysis?.recruiterInsights?.areasForImprovement?.map((area, index) => (
+              <div key={index}>
+                <p>• {area}</p>
+              </div>
+            )) || analysisResult.analysis?.recruiterInsights?.concerningAreas?.map((area, index) => (
+              <div key={index}>
+                <p>• {area}</p>
+              </div>
+            )) || <p>No improvement areas data available</p>}
+          </div>
+
+          <div className="placement-advice">
+            <h3>💡 Placement Preparation Advice</h3>
+            {analysisResult.analysis?.recruiterInsights?.placementAdvice?.map((advice, index) => (
+              <div key={index}>
+                <p>• {advice}</p>
+              </div>
+            )) || analysisResult.analysis?.recruiterInsights?.recommendations?.map((rec, index) => (
+              <div key={index}>
+                <p>• {rec}</p>
+              </div>
+            )) || <p>No placement advice available</p>}
+          </div>
+
+          <div className="company-matching">
+            <h3>🏢 Company Fit Analysis</h3>
+            <p><strong>Suitability Score:</strong> {analysisResult.analysis?.companyMatching?.suitability || analysisResult.analysis?.jobMatching?.matchPercentage || 0}%</p>
+            <p><strong>Target Role:</strong> {analysisResult.analysis?.companyMatching?.targetRole || analysisResult.analysis?.jobMatching?.targetRole || jobRole}</p>
+            <p>{analysisResult.analysis?.companyMatching?.recommendations || analysisResult.analysis?.jobMatching?.recommendations || 'No company matching analysis available'}</p>
+            
+            {analysisResult.analysis?.companyMatching?.bestFitCompanies && (
+              <div className="best-fit-companies">
+                <p><strong>🎯 Best Fit Companies:</strong></p>
+                {analysisResult.analysis.companyMatching.bestFitCompanies.map((company, index) => (
+                  <p key={index}>• {company}</p>
+                ))}
+              </div>
+            )}
           </div>
           
           <button 
@@ -128,7 +165,7 @@ const Analyze = () => {
             })}
             className="generate-story-button"
           >
-            Generate Interview Story
+            🚀 Generate Campus Interview Stories
           </button>
         </div>
       )}

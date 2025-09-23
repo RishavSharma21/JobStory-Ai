@@ -211,7 +211,11 @@ async function analyzeResume(req, res) {
     // resume.targetJobRole = jobRole; // Update job role if provided (already done above)
     await resume.save();
 
-    const aiResults = await processWithAI(resume, jobRole);
+  const aiResults = await processWithAI(resume, jobRole);
+
+  // Normalize AI results to match schema before saving
+  const { normalizeCampusAnalysis } = require('../services/aiNormalizer');
+  const normalizedAi = normalizeCampusAnalysis(aiResults);
 
     // Update resume with AI analysis
     // Assuming processWithAI returns the structured data directly
@@ -227,7 +231,7 @@ async function analyzeResume(req, res) {
       languages: Array.isArray(aiResults.languages) ? aiResults.languages : [],
       achievements: Array.isArray(aiResults.achievements) ? aiResults.achievements : [],
       // Store specific AI analysis results if processWithAI provides them separately
-      aiAnalysis: aiResults.aiAnalysis || aiResults, // Adjust based on processWithAI output
+      aiAnalysis: normalizedAi,
       analyzedAt: new Date(),
       processingStatus: 'completed'
     });

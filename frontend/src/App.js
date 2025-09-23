@@ -31,29 +31,26 @@ function App() {
     setUserResume(resumeData);
   };
 
-  // Enhanced function to handle story generation with resume parsing
+  // Fixed function to handle story generation with REAL AI analysis data
   const handleGenerateStory = (resumeData, jobRole) => {
-    console.log('Generating story for:', resumeData, jobRole);
+    console.log('🎯 App.js - Generating story for:', resumeData, jobRole);
+    console.log('🎯 App.js - Real analysis data received:', resumeData?.analysis);
     
-    // Enhanced resume data structure
+    // PRESERVE the real AI analysis data instead of creating mock data
     const generationData = {
-      fileName: resumeData.name || resumeData.fileName || 'Resume',
+      ...resumeData, // Keep all the real data from API response
       targetJobRole: jobRole,
       uploadedAt: new Date().toISOString(),
-      // Add more structured data when you implement resume parsing
-      extractedData: {
-        // This will be populated by your resume parsing AI
-        name: "John Doe", // Extract from resume
-        currentTitle: "Software Developer", // Extract from resume
-        experience: "5+ years", // Calculate from resume
-        skills: ["React", "Node.js", "Python"], // Extract from resume
-        achievements: [], // Extract quantified achievements
-        education: "", // Extract education info
-        certifications: [] // Extract certifications
-      },
-      rawContent: resumeData.content || null // Store raw resume content
+      // Keep the real analysis data that came from the AI service
+      analysis: resumeData.analysis || resumeData.aiAnalysis,
+      // Keep other real properties
+      fileName: resumeData.fileName || resumeData.name || 'Resume',
+      resumeId: resumeData.resumeId,
+      fileSize: resumeData.fileSize,
+      extractedText: resumeData.extractedText
     };
     
+    console.log('🎯 App.js - Setting generation data:', generationData);
     setCurrentGenerationData(generationData);
   };
 

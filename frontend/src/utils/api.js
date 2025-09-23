@@ -1,10 +1,12 @@
 // frontend/src/utils/api.js
 const API_BASE_URL = 'http://localhost:5000';
 
-export const uploadResume = async (file, jobRole) => {
+export const uploadResume = async (file, jobRole = '') => {
   const formData = new FormData();
   formData.append('resume', file);
-  formData.append('jobRole', jobRole);
+  if (jobRole) {
+    formData.append('jobRole', jobRole);
+  }
 
   const response = await fetch(`${API_BASE_URL}/api/resume/upload`, {
     method: 'POST',
@@ -30,7 +32,7 @@ export const analyzeResume = async (resumeId, jobRole) => {
 
   if (!response.ok) {
     const errorData = await response.json();
-    throw new Error(errorData.error || 'Failed to analyze resume');
+    throw new Error(errorData.message || errorData.error || 'Failed to analyze resume');
   }
 
   return response.json();
@@ -42,6 +44,17 @@ export const getResume = async (resumeId) => {
   if (!response.ok) {
     const errorData = await response.json();
     throw new Error(errorData.error || 'Failed to get resume');
+  }
+
+  return response.json();
+};
+
+export const getAllResumes = async () => {
+  const response = await fetch(`${API_BASE_URL}/api/resume`);
+  
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || 'Failed to get resumes');
   }
 
   return response.json();

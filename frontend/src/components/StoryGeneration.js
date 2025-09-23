@@ -2,54 +2,111 @@ import React, { useState } from 'react';
 import './StoryGeneration.css';
 
 const StoryGeneration = ({ resumeData, onSaveToHistory, onBack }) => {
+  // Debug: Log the resumeData to see what we're getting
+  console.log('🔍 StoryGeneration resumeData:', resumeData);
+  console.log('🔍 Analysis data:', resumeData?.analysis);
+  console.log('🔍 Full object keys:', resumeData ? Object.keys(resumeData) : 'No resumeData');
+  
+  // Safety check - if no resumeData, show loading state
+  if (!resumeData) {
+    return (
+      <div className="analysis-page">
+        <div className="main-container">
+          <div className="page-content">
+            <h1>Loading analysis...</h1>
+            <p>Please wait while we prepare your resume analysis.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
   // Extract job role and resume name from resumeData
   const jobRole = resumeData?.targetJobRole || "Not specified";
   const resumeName = resumeData?.fileName || "resume.pdf";
   const fileSize = resumeData?.fileSize ? `${(resumeData.fileSize / 1024).toFixed(1)} KB` : "Unknown";
 
   // Use real analysis data from resumeData instead of mock data
-  const analysisData = resumeData?.analysis || {
+  const analysisData = resumeData?.analysis || resumeData?.aiAnalysis || {};
+  console.log('🔍 Extracted analysisData:', analysisData);
+  
+  // Check if this is a fallback analysis due to AI service being unavailable
+  const isAIUnavailable = analysisData.isServerUnavailable || false;
+  
+  // Provide comprehensive fallback data
+  const fallbackData = {
     atsScore: {
-      score: 78,
-      level: "Good Match",
-      explanation: "Your resume aligns well with the job requirements but could benefit from more specific keywords and quantified results."
+      score: 0,
+      level: "Analysis Pending",
+      explanation: "Resume analysis is in progress. Please wait for the AI to complete the analysis."
     },
-    recruiterInsights: "Candidate appears to be a solid backend developer with good API experience and project ownership. However, lacks quantifiable achievements and limited cloud exposure.",
-    strengths: [
-      {
-        title: "Technical Skills",
-        items: [
-          "Strong programming foundation",
-          "Multiple technology experience",
-          "Problem-solving capability"
-        ]
-      },
-      {
-        title: "Project Experience",
-        items: [
-          "Led development projects",
-          "Improved system performance",
-          "Team collaboration experience"
-        ]
-      }
-    ],
-    growthAreas: [
-      {
-        title: "Quantifiable Achievements",
-        items: [
-          "Add specific metrics to accomplishments",
-          "Include measurable business impact"
-        ]
-      },
-      {
-        title: "Industry Keywords",
-        items: [
-          "Include more role-specific terminology",
-          "Add relevant technical skills for Software Engineer"
-        ]
-      }
-    ]
+    recruiterInsights: {
+      overview: "Analysis is being processed...",
+      keyStrengths: ["Analysis in progress"],
+      concerningAreas: ["Analysis in progress"],
+      recommendations: ["Analysis in progress"]
+    },
+    jobMatching: {
+      matchPercentage: 0,
+      recommendations: "Analysis in progress..."
+    }
   };
+
+  // Create safe display data with comprehensive checks
+  const createSafeDisplayData = () => {
+    console.log('🔍 Creating safe display data from:', analysisData);
+    
+    // If we have no analysis data at all, use all fallbacks
+    if (!analysisData || Object.keys(analysisData).length === 0) {
+      console.log('🔍 No analysis data, using all fallbacks');
+      return fallbackData;
+    }
+
+    // Build safe data structure piece by piece
+    const safeData = {
+      atsScore: {
+        score: (analysisData.atsScore && typeof analysisData.atsScore.score === 'number') 
+          ? analysisData.atsScore.score 
+          : fallbackData.atsScore.score,
+        level: (analysisData.atsScore && analysisData.atsScore.level) 
+          ? analysisData.atsScore.level 
+          : fallbackData.atsScore.level,
+        explanation: (analysisData.atsScore && analysisData.atsScore.explanation) 
+          ? analysisData.atsScore.explanation 
+          : fallbackData.atsScore.explanation
+      },
+      recruiterInsights: {
+        overview: (analysisData.recruiterInsights && analysisData.recruiterInsights.overview) 
+          ? analysisData.recruiterInsights.overview 
+          : fallbackData.recruiterInsights.overview,
+        keyStrengths: (analysisData.recruiterInsights && Array.isArray(analysisData.recruiterInsights.keyStrengths)) 
+          ? analysisData.recruiterInsights.keyStrengths 
+          : fallbackData.recruiterInsights.keyStrengths,
+        concerningAreas: (analysisData.recruiterInsights && Array.isArray(analysisData.recruiterInsights.concerningAreas)) 
+          ? analysisData.recruiterInsights.concerningAreas 
+          : fallbackData.recruiterInsights.concerningAreas,
+        recommendations: (analysisData.recruiterInsights && Array.isArray(analysisData.recruiterInsights.recommendations)) 
+          ? analysisData.recruiterInsights.recommendations 
+          : fallbackData.recruiterInsights.recommendations
+      },
+      jobMatching: {
+        matchPercentage: (analysisData.jobMatching && typeof analysisData.jobMatching.matchPercentage === 'number') 
+          ? analysisData.jobMatching.matchPercentage 
+          : fallbackData.jobMatching.matchPercentage,
+        recommendations: (analysisData.jobMatching && analysisData.jobMatching.recommendations) 
+          ? analysisData.jobMatching.recommendations 
+          : fallbackData.jobMatching.recommendations
+      },
+      overallAssessment: (analysisData.overallAssessment && typeof analysisData.overallAssessment === 'string') 
+        ? analysisData.overallAssessment 
+        : "Analysis in progress..."
+    };
+
+    console.log('🔍 Created safe display data:', safeData);
+    return safeData;
+  };
+
+  const displayData = createSafeDisplayData();
 
   const handleDownload = () => {
     console.log('Download report');
@@ -90,6 +147,24 @@ const StoryGeneration = ({ resumeData, onSaveToHistory, onBack }) => {
         </div>
       </header>
 
+      {/* AI Service Status Banner */}
+      {isAIUnavailable && (
+        <div style={{
+          backgroundColor: '#fef3c7',
+          border: '1px solid #f59e0b',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          margin: '16px 24px',
+          color: '#92400e',
+          textAlign: 'center'
+        }}>
+          <strong>⚠️ AI Service Temporarily Unavailable</strong>
+          <br />
+          The AI analysis service is experiencing high demand. Showing basic analysis below.
+          Please try again in a few minutes for full AI-powered insights.
+        </div>
+      )}
+
       {/* Single Main Container */}
       <div className="main-container">
         <div className="page-content">
@@ -102,16 +177,16 @@ const StoryGeneration = ({ resumeData, onSaveToHistory, onBack }) => {
                 <h2>ATS SCORE</h2>
                 <div className="score-section">
                   <div className="score-display">
-                    <div className="score-number">[{analysisData.atsScore.score}]</div>
+                    <div className="score-number">[{displayData.atsScore.score}]</div>
                     <div className="score-details">
-                      <div className="match-level">{analysisData.atsScore.level}</div>
-                      <div className="score-percent">{analysisData.atsScore.score}/100</div>
+                      <div className="match-level">{displayData.atsScore.level}</div>
+                      <div className="score-percent">{displayData.atsScore.score}/100</div>
                     </div>
                   </div>
                   <div className="progress-container">
-                    <div className="progress-bar" style={{ width: `${analysisData.atsScore.score}%` }}></div>
+                    <div className="progress-bar" style={{ width: `${displayData.atsScore.score}%` }}></div>
                   </div>
-                  <p className="score-explanation">{analysisData.atsScore.explanation}</p>
+                  <p className="score-explanation">{displayData.atsScore.explanation}</p>
                 </div>
               </div>
 
@@ -120,7 +195,7 @@ const StoryGeneration = ({ resumeData, onSaveToHistory, onBack }) => {
                 <h2>RECRUITER'S FIRST IMPRESSION</h2>
                 <div className="insights-content">
                   <blockquote className="recruiter-quote">
-                    "{analysisData.recruiterInsights}"
+                    "{displayData.recruiterInsights.overview}"
                   </blockquote>
                   <div className="quote-attribution">— Hiring Manager Perspective</div>
                 </div>
@@ -135,16 +210,14 @@ const StoryGeneration = ({ resumeData, onSaveToHistory, onBack }) => {
                 <div className="assessment-column">
                   <h3>KEY STRENGTHS</h3>
                   <div className="strengths-grid">
-                    {analysisData.strengths.map((strength, index) => (
-                      <div key={index} className="strength-column">
-                        <h4>{strength.title}</h4>
-                        <ul className="strength-items">
-                          {strength.items.map((item, itemIndex) => (
-                            <li key={itemIndex}>▪ {item}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    ))}
+                    <div className="strength-column">
+                      <h4>Recruiter Highlights</h4>
+                      <ul className="strength-items">
+                        {displayData.recruiterInsights.keyStrengths.map((strength, index) => (
+                          <li key={index}>▪ {strength}</li>
+                        ))}
+                      </ul>
+                    </div>
                   </div>
                 </div>
 
@@ -152,16 +225,22 @@ const StoryGeneration = ({ resumeData, onSaveToHistory, onBack }) => {
                 <div className="assessment-column">
                   <h3>GROWTH AREAS</h3>
                   <div className="growth-grid">
-                    {analysisData.growthAreas.map((area, index) => (
-                      <div key={index} className="growth-column">
-                        <h4>{area.title}</h4>
-                        <ul className="growth-items">
-                          {area.items.map((item, itemIndex) => (
-                            <li key={itemIndex}>▪ {item}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    ))}
+                    <div className="growth-column">
+                      <h4>Areas for Improvement</h4>
+                      <ul className="growth-items">
+                        {displayData.recruiterInsights.concerningAreas.map((area, index) => (
+                          <li key={index}>▪ {area}</li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div className="growth-column">
+                      <h4>Recommendations</h4>
+                      <ul className="growth-items">
+                        {displayData.recruiterInsights.recommendations.map((rec, index) => (
+                          <li key={index}>▪ {rec}</li>
+                        ))}
+                      </ul>
+                    </div>
                   </div>
                 </div>
               </div>

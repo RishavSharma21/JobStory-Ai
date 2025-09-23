@@ -4,9 +4,10 @@ const express = require('express');  // Web framework for Node.js
 const cors = require('cors');        // Allows frontend to communicate with backend
 const mongoose = require('mongoose'); // Database connection tool
 const dotenv = require('dotenv');    // Loads environment variables from .env file
+const path = require('path');
 
-// Load environment variables
-dotenv.config();
+// Load environment variables from backend/.env regardless of CWD
+dotenv.config({ path: path.join(__dirname, '.env') });
 
 // Create Express app
 const app = express();

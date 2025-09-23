@@ -1,5 +1,7 @@
+import { FaCheckCircle, FaCloudUploadAlt, FaLock, FaMagic } from 'react-icons/fa';
 // src/components/FileUpload.js
 import React, { useState, useRef } from 'react';
+import { uploadResume } from '../utils/api';
 
 const FileUpload = ({ onResumeUpload }) => {
   const [dragActive, setDragActive] = useState(false);
@@ -36,9 +38,9 @@ const FileUpload = ({ onResumeUpload }) => {
       return;
     }
 
-    // Validate file size (5MB limit)
-    if (file.size > 5 * 1024 * 1024) {
-      alert('File size should be less than 5MB');
+    // Validate file size (10MB limit to match backend)
+    if (file.size > 10 * 1024 * 1024) {
+      alert('File size should be less than 10MB');
       return;
     }
 
@@ -46,35 +48,21 @@ const FileUpload = ({ onResumeUpload }) => {
     setUploadedFile(file);
 
     try {
-      // Create FormData for file upload
-      const formData = new FormData();
-      formData.append('resume', file);
-
-      // For now, we'll simulate the upload process
-      // Later you'll connect this to your backend API
-      setTimeout(() => {
-        const mockResumeData = {
-          fileName: file.name,
-          fileSize: file.size,
-          uploadDate: new Date().toISOString(),
-          // This will be replaced with actual parsed resume data
-          parsedContent: {
-            name: "Sample User",
-            email: "user@example.com",
-            experience: ["Sample experience 1", "Sample experience 2"],
-            skills: ["JavaScript", "React", "Node.js"],
-            education: "Bachelor's in Computer Science"
-          }
-        };
-        
-        onResumeUpload(mockResumeData);
-        setUploading(false);
-      }, 2000);
+      // Use the real API call instead of mock data
+      console.log('🚀 REAL API CALL - Using live backend service (v2.0)');
+      const response = await uploadResume(file);
+      
+      console.log('Upload response:', response);
+      
+      // Pass the real API response to parent component
+      onResumeUpload(response);
+      setUploading(false);
 
     } catch (error) {
       console.error('Upload error:', error);
-      alert('Upload failed. Please try again.');
+      alert(`Upload failed: ${error.message}`);
       setUploading(false);
+      setUploadedFile(null);
     }
   };
 
@@ -117,13 +105,13 @@ const FileUpload = ({ onResumeUpload }) => {
           </div>
         ) : uploadedFile ? (
           <div className="upload-success">
-            <div className="success-icon">✅</div>
+            <div className="success-icon"><FaCheckCircle /></div>
             <p>Successfully uploaded: {uploadedFile.name}</p>
             <small>Click to upload a different file</small>
           </div>
         ) : (
           <div className="upload-prompt">
-            <div className="upload-icon">📤</div>
+            <div className="upload-icon"><FaCloudUploadAlt /></div>
             <p><strong>Click to upload</strong> or drag and drop</p>
             <small>PDF or DOCX files only (Max 5MB)</small>
           </div>
@@ -131,8 +119,8 @@ const FileUpload = ({ onResumeUpload }) => {
       </div>
       
       <div className="upload-info">
-        <p>✨ Your resume will be analyzed using AI to create compelling interview stories</p>
-        <p>🔒 Your data is secure and will never be shared</p>
+  <p><span className="info-icon"><FaMagic /></span> Your resume will be analyzed using AI to create compelling interview stories</p>
+        <p><span className="info-icon"><FaLock /></span> Your data is secure and will never be shared</p>
       </div>
     </div>
   );

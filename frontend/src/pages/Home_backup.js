@@ -12,12 +12,11 @@ import {
   FaUpload, 
   FaBullseye, 
   FaTrophy,
-  FaMicrochip,
+  FaBrain,
   FaChartLine,
   FaStar,
   FaUsers
 } from 'react-icons/fa';
-import { FaArrowRight, FaArrowDown } from 'react-icons/fa';
 
 const Home = ({ onResumeUpload, setJobRole, onGenerateStory, userResume, jobRole }) => {
   const [jobRoleInput, setJobRoleInput] = useState("");
@@ -122,7 +121,7 @@ const Home = ({ onResumeUpload, setJobRole, onGenerateStory, userResume, jobRole
     "Software Developer", 
     "Frontend Dev",
     "Backend Dev",
-    "Fullstack Dev",
+    "Full Stack Developer"
   ];
 
   return (
@@ -133,19 +132,40 @@ const Home = ({ onResumeUpload, setJobRole, onGenerateStory, userResume, jobRole
       <section className="hero-section">
         <div className="hero-content">
           <div className="badge">
-            <FaRocket className="badge-icon" />
+            <FaGraduationCap className="badge-icon" />
             Campus Placement Success Platform
           </div>
 
           <h1 className="hero-title">
             Land Your Dream{" "}
             <span className="text-blue-500">IT Job</span> Through Campus Placements
-            
+            <div className="ai-pulse">
+              <FaBrain className="ai-brain" />
+            </div>
           </h1>
 
           <p className="hero-description">
-            AI-powered resume analysis designed for IT students targeting campus placements.
+            Powered by <strong>Advanced AI</strong> that understands campus placements. <br />
+            Designed specifically for <em>IT students</em> preparing for TCS, Infosys, Wipro, Accenture, and top tech companies.
           </p>
+
+          <div className="stats-row">
+            <div className="stat-item">
+              <FaUsers className="stat-icon" />
+              <span className="stat-number">10,000+</span>
+              <span className="stat-label">Students Placed</span>
+            </div>
+            <div className="stat-item">
+              <FaBuilding className="stat-icon" />
+              <span className="stat-number">500+</span>
+              <span className="stat-label">Partner Companies</span>
+            </div>
+            <div className="stat-item">
+              <FaChartLine className="stat-icon" />
+              <span className="stat-number">95%</span>
+              <span className="stat-label">Success Rate</span>
+            </div>
+          </div>
 
           <div className="deepseek-section">
             <div className="deepseek-card">
@@ -226,61 +246,50 @@ const Home = ({ onResumeUpload, setJobRole, onGenerateStory, userResume, jobRole
                   className="deepseek-generate-btn"
                   disabled={!jobRoleInput || !isUploaded || isAnalyzing}
                 >
+                  <FaBrain className="btn-icon" />
                   {isAnalyzing ? "AI is analyzing your resume..." : "Generate Interview Story"}
-                  {!isAnalyzing && <FaRocket className="generate-icon right" />}
                 </button>
               </div>
             </div>
           </div>
 
-          {/* ✅ See How It Works - Moved outside the box */}
-          <div 
-            className="scroll-cue-outside"
-            onClick={() => {
-              const el = document.getElementById('how-it-works');
-              (el || document.querySelector('.how-it-works'))?.scrollIntoView({ 
-                behavior: 'smooth' 
-              });
-            }}
-          >
-            <u>See the steps</u> <FaArrowDown style={{ verticalAlign: 'middle' }} />
-          </div>
+          <div className="scroll-cue">↓ See how it works</div>
         </div>
       </section>
 
       {/* Features Section */}
       <section className="features-section">
         <div className="container">
-          <h2 className="section-title">Why Students Choose Us</h2>
+          <h2 className="section-title">Your Campus Placement Success Coach</h2>
 
           <div className="features-grid">
             <div className="feature-card">
               <div className="feature-header">
                 <FaFileAlt className="feature-icon" />
-                <h3>Smart Resume Analysis</h3>
+                <h3>Fresher Resume Analysis</h3>
               </div>
               <p>
-                AI analyzes your academic projects and skills for campus placements.
+                AI evaluates your resume specifically for campus placements — highlighting academic projects, internships, and skills that IT companies want.
               </p>
             </div>
 
             <div className="feature-card">
               <div className="feature-header">
                 <FaBuilding className="feature-icon" />
-                <h3>Company-Focused Prep</h3>
+                <h3>Company-Specific Prep</h3>
               </div>
               <p>
-                Tailored preparation for TCS, Infosys, Wipro, and top IT companies.
+                Get job-specific answers based on your experience. We use the STAR method to keep them short, clear, and impactful.
               </p>
             </div>
 
             <div className="feature-card">
               <div className="feature-header">
                 <FaLaptopCode className="feature-icon" />
-                <h3>Interview Stories</h3>
+                <h3>Technical Round Stories</h3>
               </div>
               <p>
-                Transform your projects into compelling interview answers.
+                Learn how to present your projects, coding skills, and technical knowledge in a way that impresses placement coordinators.
               </p>
             </div>
           </div>
@@ -288,74 +297,51 @@ const Home = ({ onResumeUpload, setJobRole, onGenerateStory, userResume, jobRole
       </section>
 
       {/* How It Works Section */}
-  <section id="how-it-works" className="how-it-works">
+      <section className="how-it-works">
         <div className="container">
-          <h2 className="section-title">How It Works</h2>
+          <h2 className="section-title">Get Placement-Ready in 4 Easy Steps</h2>
 
           <div className="steps-horizontal">
             <div className="step">
               <div className="step-number">
                 <FaUpload />
               </div>
-              <h3>Upload Resume</h3>
-              <p>Upload your resume for AI analysis.</p>
+              <h3>Upload Your Resume</h3>
+              <p>Upload your resume and let AI analyze your academic profile for campus placements.</p>
             </div>
 
-            <div className="step-arrow"><FaArrowRight /></div>
+            <div className="step-arrow">→</div>
 
             <div className="step">
               <div className="step-number">
                 <FaBullseye />
               </div>
-              <h3>Select Target Role</h3>
-              <p>Choose your desired IT position.</p>
+              <h3>Select Your Target Company</h3>
+              <p>Choose from TCS, Infosys, Wipro, Accenture — we'll personalize your preparation.</p>
             </div>
 
-            <div className="step-arrow"><FaArrowRight /></div>
+            <div className="step-arrow">→</div>
 
             <div className="step">
               <div className="step-number">
                 <FaRocket />
               </div>
-              <h3>Get AI Insights</h3>
-              <p>Receive placement-focused feedback.</p>
+              <h3>Get Campus-Focused Content</h3>
+              <p>Choose between technical answers or project stories — both tailored to fresher requirements.</p>
             </div>
 
-            <div className="step-arrow"><FaArrowRight /></div>
+            <div className="step-arrow">→</div>
 
             <div className="step">
               <div className="step-number">
                 <FaTrophy />
               </div>
-              <h3>Ace Interviews</h3>
-              <p>Land your dream job with confidence.</p>
+              <h3>Ace Your Placement</h3>
+              <p>Walk into placement interviews with confidence and land your dream IT job.</p>
             </div>
           </div>
         </div>
       </section>
-
-      {/* Footer */}
-      <footer className="footer">
-        <div className="container">
-          <div className="footer-content">
-            <div className="footer-left">
-              <h3>StoryPitch AI</h3>
-              <p>Empowering IT students for campus placement success.</p>
-            </div>
-            
-            <div className="footer-right">
-              <div className="social-links">
-                <a href="#" className="social-link">Twitter</a>
-                <a href="#" className="social-link">LinkedIn</a>
-                <a href="#" className="social-link">GitHub</a>
-                <a href="#" className="social-link">Email</a>
-              </div>
-            </div>
-          </div>
-          
-          
-        </div>
-      </footer>
     </div>
   );
 };
