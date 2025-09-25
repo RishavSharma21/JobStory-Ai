@@ -1,4 +1,4 @@
-# StoryPitch-AI 
+# JobStory-AI 
 
 StoryPitch-AI is an **AI-powered resume storyteller** that converts your uploaded resumes into engaging and personalized stories.  
 Built with **JavaScript, React, and AI integration**, this project focuses on helping users create unique career narratives.
