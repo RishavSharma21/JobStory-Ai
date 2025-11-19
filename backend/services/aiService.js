@@ -1,137 +1,111 @@
-// services/aiService.js - Campus placement resume analysis service
+// services/aiService.js - PRECISE & TOKEN-EFFICIENT Campus Placement Resume Analysis
 const fetch = require('node-fetch');
 
-// Function to build the campus placement analysis prompt
+// ====== OPTIMIZED PROMPT - CONCISE OUTPUT ======
 function buildCampusPlacementPrompt(resumeText, targetJobRole) {
-    return `
-You are an experienced campus placement coordinator and recruiter who has been placing IT students for years. You've worked with companies like TCS, Infosys, Wipro, Accenture, and know exactly what they look for in fresh graduates.
+    return `You are a CONCISE ATS analyzer. Analyze this resume for ${targetJobRole || 'Software Developer'} role.
 
-You understand the unique challenges of evaluating fresher resumes - limited professional experience, academic projects as main showcase, and the need to assess potential over proven track record.
+⚠️ CRITICAL RULES - KEEP IT SHORT:
+- Use 1-2 SHORT sentences max for explanations
+- NO long paragraphs - bullet points only
+- Be DIRECT and SPECIFIC
+- Only include REAL issues you can see
 
-Be honest but encouraging. Talk like you're mentoring a student you actually care about. Give practical, actionable advice that will help them succeed in campus placements.
-
-Target Job Role: ${targetJobRole}
-
-Resume Text:
-${resumeText}
-
-Analyze this fresher resume for campus placement readiness. Give your honest assessment in JSON format:
+Return ONLY valid JSON:
 
 {
-  "personalInfo": {
-    "name": "Extract full name",
-    "email": "Extract email address", 
-    "phone": "Extract phone number"
+  "atsScore": {
+    "score": <NUMBER 0-100>,
+    "level": "Poor|Fair|Good|Excellent",
+    "explanation": "<ONE short sentence - max 15 words>"
   },
-  "summary": "First impression for campus placement context. Example: 'This is a final year student with decent academic background. Projects show good technical foundation, especially in web development. CGPA is solid. Would definitely consider for technical interviews - has the basics to build upon.'",
-  "skills": ["List only skills explicitly mentioned or clearly demonstrated through projects"],
-  "academics": [
-    {
-      "institution": "College/University name",
-      "degree": "Degree program",
-      "cgpa": "CGPA/Percentage if mentioned",
-      "year": "Current year or graduation year",
-      "relevantCoursework": "CS fundamentals that matter for placements"
-    }
+  "grammarSpelling": [
+    "<Format: 'Section: error → fix'. Example: 'Education: Excepted → Expected'. Empty [] if clean. MAX 3 items>"
   ],
-  "projects": [
-    {
-      "title": "Project name",
-      "technologies": "Tech stack used",
-      "description": "What they built and how complex it was",
-      "placementValue": "Why this project matters for campus placements"
+  "atsImprovement": {
+    "missingKeywords": [
+      "<Top 3-5 MISSING tech skills. Just keywords, no explanations. Example: 'Docker', 'Kubernetes', 'CI/CD'. Empty [] if good>"
+    ],
+    "quickFixes": [
+      "<Top 3-5 SHORT fixes. Format: 'Location: before → after'. Keep 'after' under 20 words. Example: 'Bullet 2: Built app → Built e-commerce app handling 10K users with 99% uptime'>"
+    ],
+    "formatWarnings": [
+      "<ONLY critical format issues. One sentence each. MAX 2 items. Empty [] if clean>"
+    ],
+    "estimatedImprovement": {
+      "currentScore": <same as atsScore>,
+      "potentialScore": <currentScore + realistic boost>,
+      "impact": "Low|Medium|High"
     }
+  },
+  "quickFixes": [
+    "<Top 3-5 SHORT action items. MAX 10 words each. Example: '1. Education: Fix Excepted → Expected', '2. Add Docker, Kubernetes to skills', '3. Bullet 3: Add metrics (reduced time 40%)'>"
   ],
-  "internships": [
-    {
-      "company": "Company name if any",
-      "role": "Intern role",
-      "duration": "Time period",
-      "impact": "What real value they added during internship"
-    }
-  ],
-  "campusReadinessScore": {
-    "score": 0-100,
-    "level": "Needs Work/Ready/Strong Candidate/Top Tier",
-    "explanation": "Honest assessment of their campus placement readiness. Example: 'Score: 78/100. Strong technical foundation with good projects. Academic performance is solid. Main gap is lack of system design thinking and no open source contributions. But definitely ready for most campus drives.'"
-  },
-  "recruiterInsights": {
-    "overview": "Real assessment for campus context. Example: 'This student has put in effort - multiple projects, decent grades, shows consistency. Not exceptional but definitely hireable. Would fit well in a graduate trainee program where they can learn on the job.'",
-    "technicalStrengths": [
-      "What technical skills actually stand out? Example: 'Good grasp of full-stack development - both frontend and backend projects show depth, not just tutorials.'",
-      "Highlight genuine technical competence"
-    ],
-    "academicHighlights": [
-      "Academic achievements that matter for placements",
-      "CGPA, relevant coursework, academic projects"
-    ],
-    "areasForImprovement": [
-      "What gaps might hurt them in campus placements? Example: 'No Data Structures & Algorithms practice visible. For companies like TCS and Infosys, they'll need to show coding problem-solving skills.'",
-      "Focus on placement-relevant gaps"
-    ],
-    "placementAdvice": [
-      "Specific advice for campus drives. Example: 'Before placement season, build one more project with a database and deployment. Practice basic DSA problems. Learn to explain your projects clearly in 2 minutes.'",
-      "Actionable steps for placement preparation"
-    ]
-  },
-  "companyMatching": {
-    "targetRole": "${targetJobRole}",
-    "suitability": 0-100,
-    "bestFitCompanies": ["Companies where they'd likely succeed"],
-    "companiesNeedingPrep": ["Companies requiring additional preparation"],
-    "recommendations": "Honest assessment of company fit. Example: 'Strong match for service companies like TCS, Infosys - they value academic performance and willingness to learn. For product companies, need to strengthen DSA and system design fundamentals.'"
-  },
-  "technicalReadiness": {
-    "codingSkills": "Assessment of programming ability based on projects",
-    "frameworkKnowledge": "Understanding of frameworks and libraries",
-    "databaseConcepts": "Database design and usage skills",
-    "deploymentExperience": "Real-world deployment and hosting experience",
-    "gapsToAddress": ["Critical technical gaps before placement season"]
-  },
-  "interviewPreparation": {
-    "technicalStories": [
-      "How to present their projects compellingly. Example: 'When they ask about your e-commerce project, don't just list features. Say: I built this to solve real inventory management for my friend's shop. Learned how database normalization prevents data inconsistency the hard way when I had to fix duplicate orders.'"
-    ],
-    "hrQuestionPrep": [
-      "Campus-specific HR questions they should prepare for",
-      "Why this company? Why software development? Career goals?"
-    ],
-    "commonChallenges": [
-      "What typically trips up students in placement interviews",
-      "How to handle questions about limited experience"
-    ]
-  },
-  "marketPosition": {
-    "currentStanding": "Where they rank among campus placement candidates",
-    "competitiveAdvantage": "What makes them stand out from other students",
-    "salaryExpectations": "Realistic salary range for campus placements",
-    "careerTrajectory": "Expected career growth path from this starting point"
-  },
-  "placementStrategy": {
-    "priorityCompanies": "Which companies to target first based on their profile",
-    "preparationTimeline": "What to focus on in remaining time before placements",
-    "skillDevelopment": "Skills to develop for better placement prospects",
-    "portfolioGaps": "What's missing from their showcase portfolio"
-  },
-  "finalAssessment": "Honest but encouraging conclusion. Example: 'You're in a good position for campus placements. Your projects show you can code and solve problems, your academics are solid, and you seem genuinely interested in technology. Focus on DSA practice and be ready to tell compelling stories about your projects. Most companies will see your potential and want to train you. You've got this!'"
+  "skillKeywordGaps": {
+    "skills_present": [<List found skills - just names, no descriptions. Example: "React", "Node.js", "Python">],
+    "critical_missing": [<Top 2-3 MISSING critical skills with ONE word reason. Example: "Docker (required)", "Testing (standard)". Empty [] if 8+ skills present>]
+  }
 }
 
-WRITE FOR CAMPUS PLACEMENT CONTEXT:
-- Focus on potential over experience
-- Understand they're students, not industry veterans
-- Give practical advice for the next 2-3 months
-- Consider academic projects as valuable experience
-- Address common fresher anxieties and concerns
-- Be encouraging but realistic about skill gaps
-- Think about what campus recruiters actually look for
-- Remember they're competing with other students, not industry professionals
-- Respond ONLY with valid JSON, no extra text`;
+🎯 KEEP IT CONCISE:
+- Each suggestion: 5-20 words MAX
+- No lengthy explanations
+- Direct, actionable advice only
+- Remove fluff and filler words
+
+Resume Text:
+${resumeText}`;
 }
 
-// Main AI processing function with retry logic
+
+// Utility: extract JSON block even if model wrapped it in prose/code fences
+function extractJson(text) {
+  if (!text) return null;
+  
+  // Strip common code fences and markdown formatting
+  let t = text.trim()
+    .replace(/^```json\s*|\s*```$/g, '')
+    .replace(/^```\s*|\s*```$/g, '')
+    .trim();
+  
+  // Try direct parse first
+  try { return JSON.parse(t); } catch (_) { /* try fallback */ }
+  
+  // Extract JSON from surrounding text
+  const first = t.indexOf('{');
+  const last = t.lastIndexOf('}');
+  if (first !== -1 && last !== -1 && last > first) {
+    let slice = t.slice(first, last + 1);
+    
+    // Fix common JSON issues
+    slice = slice
+      .replace(/,\s*(\}|\])/g, '$1')  // Remove trailing commas
+      .replace(/\n/g, ' ')             // Remove newlines that break parsing
+      .replace(/\s+/g, ' ');           // Normalize whitespace
+    
+    try { return JSON.parse(slice); } catch (e) { 
+      console.error('JSON parse error after cleanup:', e.message);
+    }
+  }
+  
+  return null;
+}
+
+// Main AI processing function with retry logic and model fallbacks
 async function processWithAI(resumeDocument, targetJobRole = 'Not specified') {
     console.log(`Starting campus placement AI analysis for: ${resumeDocument.fileName}`);
     const startTime = Date.now();
+
+  // Short-circuit: mock mode to disable external API calls
+  if (String(process.env.AI_MODE).toLowerCase() === 'mock' || String(process.env.AI_DISABLED) === '1') {
+    const resumeText = resumeDocument.cleanedText || resumeDocument.extractedText || '';
+    const mock = generateCampusPlacementFallback(resumeText, targetJobRole);
+    mock.warning = 'AI_MODE=mock: returning deterministic mock analysis (no external calls).';
+    mock.fallbackReason = 'mock_mode';
+    mock.isServerUnavailable = false;
+    mock.aiModel = 'mock-generator';
+    return mock;
+  }
 
   // Check for API key
   const apiKey = process.env.GEMINI_API_KEY;
@@ -153,19 +127,35 @@ async function processWithAI(resumeDocument, targetJobRole = 'Not specified') {
         throw new Error('No text found in the resume document.');
     }
 
-    // Retry logic for API calls
-  const maxRetries = 4; // More retries to ride out transient rate limits
-  const retryDelayBase = 1000; // Base delay in ms for exponential backoff
+  // Retry logic & model fallbacks
+  const maxRetries = 5;
+  const retryDelayBase = 2000;  // Start with 2 seconds
+  const primaryModel = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+  const fallbackModels = (process.env.GEMINI_MODEL_FALLBACKS || 'gemini-2.5-pro-preview-03-25,gemini-2.5-flash-preview-05-20')
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean);
+  const modelCandidates = [primaryModel, ...fallbackModels];
 
+  // Reduce payload risk: trim very long resumes (server-side safeguard)
+  const MAX_CHARS = 12000;
+  const safeText = resumeText.length > MAX_CHARS ? resumeText.slice(0, MAX_CHARS) + '\n...[truncated]' : resumeText;
+
+  for (const model of modelCandidates) {
+    console.log(`[AI] Trying model: ${model}`);
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
-            console.log(`Attempt ${attempt}/${maxRetries}: Sending campus placement analysis prompt to Gemini API...`);
+      console.log(`Attempt ${attempt}/${maxRetries}: Sending campus placement analysis prompt to Gemini API...`);
 
             // Build the campus placement prompt with actual values
-            const prompt = buildCampusPlacementPrompt(resumeText, targetJobRole);
-
-            const model = "gemini-1.5-flash-latest";
-            const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      const prompt = buildCampusPlacementPrompt(safeText, targetJobRole);
+      console.log(`[AI] Using Gemini model: ${model}`);
+      
+      // Ensure model name is clean (no models/ prefix for the ID part)
+      const cleanModel = model.replace(/^models\//, '');
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${cleanModel}:generateContent?key=${apiKey}`;
+      
+      console.log(`[AI] Endpoint: ${endpoint.substring(0, 80)}...`);
 
       const requestBody = {
                 contents: [{
@@ -174,45 +164,54 @@ async function processWithAI(resumeDocument, targetJobRole = 'Not specified') {
                     }]
                 }],
                 generationConfig: {
-          temperature: 0.3, // Slightly higher for more natural language
-          maxOutputTokens: 1200, // Lower to reduce quota usage and 429s
-                    topP: 0.9,
-                    topK: 40
-                }
+      temperature: 0.2,
+      maxOutputTokens: 2048,
+      topP: 0.95,
+      topK: 40,
+      responseMimeType: 'application/json'
+                },
+                safetySettings: [
+                  {category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE'},
+                  {category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE'},
+                  {category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE'},
+                  {category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE'}
+                ]
             };
 
       const apiResponse = await fetch(endpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(requestBody),
-                timeout: 30000 // 30 second timeout for complex analysis
+                timeout: 20000 // 20 second timeout for faster response
             });
 
             if (!apiResponse.ok) {
                 const errorText = await apiResponse.text();
-                console.error(`Gemini API Error (${apiResponse.status}):`, errorText);
+                console.error(`Gemini API Error (${apiResponse.status}):`, errorText.substring(0, 100));
                 
                 // Check if it's a temporary error that we should retry
                 if (apiResponse.status === 503 || apiResponse.status === 429 || apiResponse.status === 500) {
-                    console.error(`Gemini API Error (${apiResponse.status}) - Attempt ${attempt}:`, errorText);
+                    console.error(`Retryable error (${apiResponse.status}) - Attempt ${attempt}/${maxRetries}`);
                     
           if (attempt < maxRetries) {
-            const jitter = Math.floor(Math.random() * 500);
-            const delay = retryDelayBase * Math.pow(2, attempt - 1) + jitter;
-            console.log(`Retrying in ${delay}ms...`);
+            // For 429 (rate limit), use larger exponential backoff
+            const baseDelay = apiResponse.status === 429 ? 3000 : retryDelayBase;
+            const jitter = Math.floor(Math.random() * 2000);
+            const delay = baseDelay * Math.pow(2, attempt - 1) + jitter;
+            console.log(`Waiting ${delay}ms before retry...`);
             await new Promise(resolve => setTimeout(resolve, delay));
                         continue; // Try again
                     } else {
                         // Last attempt failed, return fallback data
-                        console.log('All retry attempts failed, returning fallback analysis...');
+                        console.log('All retry attempts exhausted, returning fallback analysis...');
             const fb = generateCampusPlacementFallback(resumeText, targetJobRole);
-            fb.warning = `Gemini API error ${apiResponse.status}. Using fallback.`;
-            fb.fallbackReason = `api_error_${apiResponse.status}`;
+            fb.warning = `Gemini API error ${apiResponse.status}. All retries exhausted.`;
+            fb.fallbackReason = `api_error_${apiResponse.status}_exhausted`;
             return fb;
                     }
                 } else {
                     // Non-retryable error
-                    console.error(`Non-retryable Gemini API error (${apiResponse.status}): ${errorText}`);
+                    console.error(`Non-retryable Gemini API error (${apiResponse.status})`);
           const fb = generateCampusPlacementFallback(resumeText, targetJobRole);
           fb.warning = `Non-retryable Gemini API error ${apiResponse.status}. Using fallback.`;
           fb.fallbackReason = `api_error_${apiResponse.status}`;
@@ -221,7 +220,25 @@ async function processWithAI(resumeDocument, targetJobRole = 'Not specified') {
             }
 
             const json = await apiResponse.json();
-            const rawResponseText = json?.candidates?.[0]?.content?.parts?.[0]?.text;
+            
+            // Try multiple extraction paths
+            let rawResponseText = json?.candidates?.[0]?.content?.parts?.[0]?.text;
+            
+            // Fallback: check if text is in different location
+            if (!rawResponseText && json?.candidates?.[0]?.text) {
+              rawResponseText = json.candidates[0].text;
+            }
+            
+            // Fallback: check grounding metadata
+            if (!rawResponseText && json?.candidates?.[0]?.groundingMetadata?.retrievalQueries?.[0]) {
+              rawResponseText = json.candidates[0].groundingMetadata.retrievalQueries[0];
+            }
+            
+            // Check if model is in thinking mode (no parts array)
+            if (!rawResponseText && json?.candidates?.[0]?.content && !json.candidates[0].content.parts) {
+              console.warn('⚠️ Model returned thinking mode response (no parts array). Treating as empty response.');
+              throw new Error('Model in thinking mode - no text content available');
+            }
 
             if (!rawResponseText) {
                 console.error("Full API Response:", JSON.stringify(json, null, 2));
@@ -229,30 +246,19 @@ async function processWithAI(resumeDocument, targetJobRole = 'Not specified') {
             }
 
             // Clean and parse response
-            let jsonString = rawResponseText.trim();
-            jsonString = jsonString.replace(/^```json\s*|\s*```$/g, '');
-
-            let aiAnalysisData;
-            try {
-                aiAnalysisData = JSON.parse(jsonString);
-                console.log("Successfully parsed campus placement AI response.");
-            } catch (parseError) {
-                console.error("Failed to parse AI response as JSON:");
-                console.error("Raw response:", rawResponseText);
-                
-        if (attempt < maxRetries) {
-          const jitter = Math.floor(Math.random() * 500);
-          const delay = retryDelayBase * Math.pow(2, attempt - 1) + jitter;
-          console.log(`Parse error on attempt ${attempt}, retrying in ${delay}ms...`);
-          await new Promise(resolve => setTimeout(resolve, delay));
-                    continue;
-                } else {
-                    console.log('Parse failed on all attempts, returning fallback analysis...');
-          const fb = generateCampusPlacementFallback(resumeText, targetJobRole);
-          fb.warning = 'AI response parse failure. Using fallback.';
-          fb.fallbackReason = 'parse_error';
-          return fb;
-                }
+            const aiAnalysisData = extractJson(rawResponseText);
+            if (!aiAnalysisData) {
+              console.error('Failed to parse AI response as JSON. Raw snippet (first 500 chars):', String(rawResponseText).slice(0, 500));
+              if (attempt < maxRetries) {
+                const jitter = Math.floor(Math.random() * 500);
+                const delay = retryDelayBase * Math.pow(2, attempt - 1) + jitter;
+                console.log(`Parse error on attempt ${attempt}, retrying in ${delay}ms...`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+                continue;
+              } else {
+                // try next model candidate
+                break;
+              }
             }
 
             // Add metadata
@@ -268,102 +274,120 @@ async function processWithAI(resumeDocument, targetJobRole = 'Not specified') {
             console.error(`Error on attempt ${attempt}:`, error.message);
             
       if (attempt < maxRetries) {
-        const jitter = Math.floor(Math.random() * 500);
+        const jitter = Math.floor(Math.random() * 2000);
         const delay = retryDelayBase * Math.pow(2, attempt - 1) + jitter;
         console.log(`Retrying in ${delay}ms...`);
         await new Promise(resolve => setTimeout(resolve, delay));
             } else {
-                console.log('All attempts failed, returning fallback analysis...');
-        const fb = generateCampusPlacementFallback(resumeText, targetJobRole);
-        fb.warning = `Unhandled error: ${error.message}. Using fallback.`;
-        fb.fallbackReason = 'unhandled_error';
-        return fb;
+              console.log(`[AI] Attempts exhausted for model ${model}`);
+              break;
             }
         }
-    }
+      } // end attempts loop
+    } // end model candidates loop
+
+    // If we're here, all models failed; return fallback
+    console.log('All models and retry attempts failed, returning fallback analysis...');
+    const fb = generateCampusPlacementFallback(safeText, targetJobRole);
+    fb.warning = 'All models failed (retries exhausted). Using fallback.';
+    fb.fallbackReason = 'all_models_failed';
+    return fb;
 }
 
-// Fallback analysis function for campus placement when AI is unavailable
+// Fallback analysis for when AI is unavailable
 function generateCampusPlacementFallback(resumeText, targetJobRole) {
-    console.log('Generating campus placement fallback analysis due to AI service unavailability...');
+    console.log('Generating fallback analysis...');
     
-    // Basic text analysis for campus context
-    const textLength = resumeText.length;
-    const wordCount = resumeText.split(/\s+/).length;
-    const hasContactInfo = /email|phone|@/.test(resumeText.toLowerCase());
     const hasProjects = /project|built|developed|created|designed/.test(resumeText.toLowerCase());
-    const hasCGPA = /cgpa|gpa|percentage|marks/.test(resumeText.toLowerCase());
-    
-    // Campus placement relevant skills
     const campusSkills = ['java', 'python', 'javascript', 'react', 'html', 'css', 'sql', 'mysql', 'mongodb', 'node', 'express', 'spring', 'android', 'flutter'];
-    const foundSkills = campusSkills.filter(skill => 
-        resumeText.toLowerCase().includes(skill)
-    );
+    const foundSkills = campusSkills.filter(skill => resumeText.toLowerCase().includes(skill));
 
-    const fallbackAnalysis = {
-        personalInfo: {
-            name: hasContactInfo ? "Contact info found" : "Missing contact details",
-            email: hasContactInfo ? "Email present" : "Add email address",
-            phone: hasContactInfo ? "Phone present" : "Add phone number"
-        },
-        summary: `Quick scan while our AI is down: You've got a ${wordCount}-word resume that ${hasProjects ? 'shows some project work' : 'needs more project details'}. ${hasCGPA ? 'Academic info is there' : 'Academic performance details would help'}. Can't give proper campus placement analysis until our system is back.`,
-        skills: foundSkills.length > 0 ? foundSkills : ["Can't properly scan technical skills - system down"],
-        academics: [],
-        projects: [],
-        internships: [],
-        campusReadinessScore: {
+    return {
+        atsScore: {
             score: hasProjects && foundSkills.length > 0 ? 60 : 35,
-            level: hasProjects && foundSkills.length > 0 ? "Ready for Assessment" : "Needs Enhancement",
-            explanation: `Basic scan: ${hasProjects ? 'Projects visible' : 'Need more projects'}, ${foundSkills.length} technical skills found. For proper campus readiness score, need full AI analysis.`
+            level: hasProjects && foundSkills.length > 0 ? "Fair" : "Poor",
+            explanation: `Basic scan: ${hasProjects ? 'Projects visible' : 'Need projects'}. ${foundSkills.length} skills found. AI offline - enable for full analysis.`
         },
+        grammarSpelling: ["AI offline - manual review needed"],
         recruiterInsights: {
-            overview: `Quick campus placement perspective while AI is offline: ${foundSkills.length > 0 ? 'Some relevant technical skills visible' : 'Technical skills need to be highlighted better'}. ${hasProjects ? 'Project experience shows initiative' : 'More hands-on projects needed'}. This is just a surface scan though.`,
-            technicalStrengths: foundSkills.length > 0 ? [`Found these skills: ${foundSkills.join(', ')}`] : ["Need full system for technical assessment"],
-            academicHighlights: hasCGPA ? ["Academic performance mentioned"] : ["Add academic achievements"],
-            areasForImprovement: ["System down - can't identify specific gaps"],
-            placementAdvice: ["Wait for full AI analysis", "Ensure contact info is clear", "Highlight your best projects"]
+            overview: `Basic scan only (AI offline): ${foundSkills.length > 0 ? 'Some skills present' : 'Skills unclear'}. ${hasProjects ? 'Has projects' : 'Need projects'}. Enable AI for brutal honest feedback.`,
+            keyStrengths: foundSkills.length > 0 ? [`Found: ${foundSkills.join(', ')}`] : ["Need AI analysis"],
+            recommendations: ["Enable AI for detailed feedback", "Add clear contact info", "Add metrics to projects"]
         },
-        companyMatching: {
-            targetRole: targetJobRole,
-            suitability: foundSkills.length > 0 ? 50 : 25,
-            bestFitCompanies: foundSkills.length > 2 ? ["Service companies might be interested"] : ["Need skills assessment first"],
-            companiesNeedingPrep: ["Full analysis needed for company matching"],
-            recommendations: "Can't properly assess company fit without full AI evaluation."
+        quickFixes: [
+            "AI offline - can't detect specific issues",
+            "Check spelling manually",
+            "Add project metrics"
+        ],
+        skillKeywordGaps: {
+            skills_present: foundSkills,
+            critical_missing: ["AI needed for gap analysis"]
         },
-        technicalReadiness: {
-            codingSkills: hasProjects ? "Projects suggest some coding experience" : "Need to showcase coding abilities",
-            frameworkKnowledge: foundSkills.includes('react') || foundSkills.includes('spring') ? "Some framework knowledge visible" : "Framework experience unclear",
-            databaseConcepts: foundSkills.includes('sql') || foundSkills.includes('mysql') ? "Database skills indicated" : "Database knowledge needs highlighting",
-            deploymentExperience: "Need full analysis for deployment assessment",
-            gapsToAddress: ["Full AI required for gap analysis"]
-        },
-        interviewPreparation: {
-            technicalStories: ["AI down - can't prep technical stories"],
-            hrQuestionPrep: ["Standard campus questions: Why this company? Career goals?"],
-            commonChallenges: ["Practice explaining projects clearly", "Prepare for technical questions"]
-        },
-        marketPosition: {
-            currentStanding: "Need full AI analysis for market positioning",
-            competitiveAdvantage: hasProjects ? "Project experience is positive" : "Need to build project portfolio",
-            salaryExpectations: "3-5 LPA typical for campus placements",
-            careerTrajectory: "Graduate trainee programs are good starting point"
-        },
-        placementStrategy: {
-            priorityCompanies: "Service companies usually more open to freshers",
-            preparationTimeline: "Focus on DSA practice and project explanation",
-            skillDevelopment: "Full AI needed for personalized skill roadmap",
-            portfolioGaps: "Need complete analysis for portfolio review"
-        },
-        finalAssessment: `While our AI is temporarily down, here's what I can see: ${foundSkills.length > 0 ? 'You have some relevant technical skills' : 'Technical skills need better highlighting'}, ${hasProjects ? 'project work shows hands-on experience' : 'more projects would strengthen your profile'}. For campus placements, you're on a decent track but need the full AI analysis to give you proper guidance. Come back in a few minutes for the complete assessment you deserve.`,
         processingTime: 100,
-        aiModel: "campus-placement-fallback",
+        aiModel: "fallback",
         processedAt: new Date().toISOString(),
         isServerUnavailable: true
     };
+}
 
-    return fallbackAnalysis;
+// Lightweight health check for Gemini connectivity
+async function geminiHealth() {
+  if (String(process.env.AI_MODE).toLowerCase() === 'mock' || String(process.env.AI_DISABLED) === '1') {
+    return { ok: true, mocked: true, reason: 'AI_MODE=mock' };
+  }
+  const apiKey = process.env.GEMINI_API_KEY;
+  const model = (process.env.GEMINI_MODEL || 'gemini-1.5-flash').replace(/^models\//, '');
+  if (!apiKey) {
+    return { ok: false, reason: 'missing_api_key' };
+  }
+  try {
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+    const body = {
+      contents: [{ parts: [{ text: 'test' }] }],
+      generationConfig: { temperature: 0.1, maxOutputTokens: 10 }
+    };
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      timeout: 10000
+    });
+    const text = await res.text();
+    if (!res.ok) {
+      return { ok: false, status: res.status, body: text.substring(0, 200) };
+    }
+    let parsed;
+    try { parsed = JSON.parse(text); } catch (_) { parsed = { raw: text.substring(0, 100) }; }
+    const reply = parsed?.candidates?.[0]?.content?.parts?.[0]?.text || 'OK';
+    return { ok: true, status: res.status, reply };
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
+}
+
+// List available models for this API key/project
+async function listModels() {
+  if (String(process.env.AI_MODE).toLowerCase() === 'mock' || String(process.env.AI_DISABLED) === '1') {
+    return { ok: true, mocked: true, models: [] };
+  }
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) return { ok: false, reason: 'missing_api_key' };
+  try {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`;
+    const res = await fetch(url, { timeout: 10000 });
+    const text = await res.text();
+    if (!res.ok) return { ok: false, status: res.status, body: text.substring(0, 200) };
+    let parsed;
+    try { parsed = JSON.parse(text); } catch (_) { parsed = { raw: text.substring(0, 100) }; }
+    const names = (parsed.models || []).map(m => m.name || m).slice(0, 20);
+    return { ok: true, status: res.status, models: names };
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
 }
 
 module.exports = {
-    processWithAI
+  processWithAI,
+  geminiHealth,
+  listModels
 };

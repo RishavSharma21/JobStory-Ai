@@ -10,19 +10,22 @@
 /* ---------------------------- */
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
-html, body, #root, .App { min-height: 100vh; }
+html { margin: 0; padding: 0; width: 100%; height: 100%; }
+body { margin: 0; padding: 0; width: 100%; min-height: 100vh; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #121212; color: #f5f5f5; line-height: 1.6; }
+#root, .App { width: 100%; min-height: 100vh; margin: 0; padding: 0; }
 
-body { 
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: #121212; /* dark default */
-  color: #f5f5f5;
-  line-height: 1.6;
-}
 
 .container { 
   max-width: 1200px; 
   margin: 0 auto; 
   padding: 0 2rem;
+}
+
+/* Main content */
+.main-content {
+  width: 100%;
+  margin: 0;
+  padding: 0;
 }
 
 /* Utility (fallback for Tailwind class used in Home.js) */
@@ -297,8 +300,8 @@ h1.logo, .logo h1 {
   font-weight: 600; 
   margin-bottom: 1.5rem; 
   line-height: 1.2; 
-  color: #f5f5f5; 
-  letter-spacing: -0.02em; 
+  letter-spacing: -0.02em;
+  color: #f5f5f5;
 }
 .hero-title span { color: #3b71c7; }
 .hero-subtext { color: rgba(255,255,255,0.85); }
@@ -347,11 +350,23 @@ h1.logo, .logo h1 {
 
 .ai-input-card {
   padding: 2rem; max-width: 700px; margin: 0 auto; border-radius: 16px;
-  background: rgba(26,26,26,0.85);
-  border: 1px solid rgba(99,102,241,0.15);
-  backdrop-filter: blur(12px);
-  box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+  
+  /* Clean glass effect */
+  background: linear-gradient(135deg, 
+    rgba(255, 255, 255, 0.08) 0%,
+    rgba(255, 255, 255, 0.03) 100%
+  );
+  backdrop-filter: blur(12px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    
   transition: border-color 0.3s ease;
+}
+
+.ai-input-card:hover { 
+  border-color: rgba(59, 130, 246, 0.4); 
 }
 .ai-input-card:hover { border-color: rgba(99,102,241,0.4); }
 
@@ -432,24 +447,45 @@ h1.logo, .logo h1 {
   box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.08);
   color: #fff;
 }
-/* Generate button styles (merged with deepseek-generate-btn) */
+/* Clean Glass Generate Button */
 .deepseek-generate-btn {
   width: 100%;
   padding: 1rem;
-  background: linear-gradient(135deg, rgba(59,130,246,0.18), rgba(99,102,241,0.18)), rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 10px;
+  
+  /* Subtle glass effect */
+  background: linear-gradient(135deg, 
+    rgba(255, 255, 255, 0.1) 0%,
+    rgba(255, 255, 255, 0.05) 100%
+  );
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
   color: #f5f5f5;
   font-weight: 500;
   font-size: 1rem;
   cursor: pointer;
-  transition: transform 0.25s ease, box-shadow 0.25s ease, background-color 0.3s ease;
+  
+  box-shadow: 
+    0 4px 15px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    
+  transition: all 0.3s ease;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
   position: relative;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+}
+
+.deepseek-generate-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, 
+    rgba(59, 130, 246, 0.2) 0%,
+    rgba(59, 130, 246, 0.1) 100%
+  );
+  border-color: rgba(59, 130, 246, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
 }
 
 .deepseek-generate-btn::before {

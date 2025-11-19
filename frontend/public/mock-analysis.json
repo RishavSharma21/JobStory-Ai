@@ -1,0 +1,85 @@
+{
+  "success": true,
+  "message": "Resume analyzed successfully",
+  "resumeId": "mock-000000000000000000000001",
+  "fileName": "Sample_Resume.pdf",
+  "targetJobRole": "Frontend Dev",
+  "processingStatus": "completed",
+  "analysis": {
+    "personalInfo": {
+      "name": "Contact info found",
+      "email": "Email present",
+      "phone": "Phone present"
+    },
+    "summary": "Quick scan while our AI is down: You've got a 900-word resume that shows some project work. Academic performance details would help. Can't give proper campus placement analysis until our system is back.",
+    "skills": ["javascript", "react", "html", "css", "node"],
+    "academics": [],
+    "projects": [],
+    "internships": [],
+    "campusReadinessScore": {
+      "score": 999,
+      "level": "🚨 THIS IS MOCK DATA 🚨",
+      "explanation": "IF YOU SEE THIS, THE BACKEND IS NOT WORKING!"
+    },
+    "recruiterInsights": {
+      "overview": "Quick campus placement perspective while AI is offline: Some relevant technical skills visible. Project experience shows initiative. This is just a surface scan though.",
+      "technicalStrengths": ["Found these skills: javascript, react, html, css, node"],
+      "academicHighlights": ["Add academic achievements"],
+      "areasForImprovement": [
+        "Bullet points lack measurable outcomes",
+        "Use active verbs at the start of bullets",
+        "Reduce paragraphs to concise bullet points"
+      ],
+      "placementAdvice": [
+        "Practice 30 common DSA questions",
+        "Add one deployed project with README",
+        "Prepare a 60-second project summary"
+      ],
+      "recommendations": [
+        "Convert responsibilities to achievements with metrics",
+        "Add dates and titles for all roles",
+        "Include 6-10 core skills relevant to the role"
+      ]
+    },
+    "companyMatching": {
+      "targetRole": "Frontend Dev",
+      "suitability": 72,
+      "bestFitCompanies": ["Service companies might be interested", "Product startups (React-heavy)", "Agencies (UI-focused)"]
+    },
+    "technicalReadiness": {
+      "codingSkills": "Projects suggest some coding experience",
+      "frameworkKnowledge": "React knowledge visible",
+      "databaseConcepts": "Database knowledge needs highlighting",
+      "deploymentExperience": "Add deployed links (Vercel/Netlify)",
+      "gapsToAddress": ["Deepen JS fundamentals", "Testing basics (Jest)"]
+    },
+    "interviewPreparation": {
+      "technicalStories": [
+        "Built a component library to standardize UI and reduce dev time",
+        "Optimized bundle size via code-splitting"
+      ],
+      "hrQuestionPrep": ["Why frontend?", "Describe a time you solved a UI bug"],
+      "commonChallenges": ["Explaining trade-offs", "Debugging under time pressure"]
+    },
+    "marketPosition": {
+      "currentStanding": "Solid fresher profile with potential",
+      "competitiveAdvantage": "Portfolio with React projects",
+      "salaryExpectations": "3-6 LPA typical for campus placements",
+      "careerTrajectory": "Frontend engineer → UI specialist"
+    },
+    "placementStrategy": {
+      "priorityCompanies": "Start with service companies; then apply to React-focused startups",
+      "preparationTimeline": "2-3 weeks focused prep",
+      "skillDevelopment": "JS fundamentals, React patterns, testing",
+      "portfolioGaps": "Add live links and concise READMEs"
+    },
+    "finalAssessment": "You have relevant skills and projects. Focus on bullet quality, metrics, and deployed demos to stand out.",
+    "processingTime": 100,
+    "aiModel": "campus-placement-fallback",
+    "processedAt": "2025-11-17T00:00:00.000Z",
+    "isServerUnavailable": true,
+    "warning": "AI_MODE=mock",
+    "fallbackReason": "mock"
+  },
+  "analyzedAt": "2025-11-17T00:00:00.000Z"
+}

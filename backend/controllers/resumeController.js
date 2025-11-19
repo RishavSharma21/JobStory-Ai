@@ -153,10 +153,11 @@ async function analyzeResume(req, res) {
     // Get job role from request body
     const jobRole = req.body.jobRole || 'Not specified';
 
-    console.log('Analyzing resume ID:', id, 'for job role:', jobRole);
+    console.log('🔍 Analyzing resume ID:', id, 'for job role:', jobRole);
 
     // Find resume in database
     const resume = await Resume.findById(id);
+    console.log('📄 Found resume:', resume?.fileName, 'Status:', resume?.processingStatus, 'Has existing analysis:', !!resume?.aiAnalysis);
 
     if (!resume) {
       return res.status(404).json({
@@ -206,12 +207,17 @@ async function analyzeResume(req, res) {
     // For now, let's assume processWithAI exists and is updated, or you replace the block above.
     // If you remove processWithAI, remove this block and uncomment the placeholder above.
     const { processWithAI } = require('../services/aiService'); // Make sure this path is correct
+    
+    // ALWAYS run fresh AI analysis (don't use cached analysis)
+    console.log('🤖 Starting FRESH AI analysis for:', jobRole);
+    
     // Update processing status
     resume.processingStatus = 'processing_ai'; // Indicate AI processing started
-    // resume.targetJobRole = jobRole; // Update job role if provided (already done above)
+    resume.targetJobRole = jobRole; // Update job role
     await resume.save();
 
-  const aiResults = await processWithAI(resume, jobRole);
+    const aiResults = await processWithAI(resume, jobRole);
+    console.log('✅ AI analysis completed. ATS Score:', aiResults?.atsScore?.score);
 
   // Normalize AI results to match schema before saving
   const { normalizeCampusAnalysis } = require('../services/aiNormalizer');
@@ -239,8 +245,7 @@ async function analyzeResume(req, res) {
 
     console.log('Resume analysis completed successfully');
 
-    // Return comprehensive analysis results
-    // Adjust the response structure based on what aiResults contains
+    // Return ONLY the 5 features the frontend needs
     res.json({
       success: true,
       message: 'Resume analyzed successfully',
@@ -248,7 +253,8 @@ async function analyzeResume(req, res) {
       fileName: resume.fileName,
       targetJobRole: resume.targetJobRole,
       processingStatus: resume.processingStatus,
-      analysis: aiResults, // This should now contain the AI's structured output
+      // Return ONLY normalized analysis (5 features)
+      analysis: normalizedAi,
       analyzedAt: resume.analyzedAt
     });
 
@@ -455,11 +461,40 @@ async function getResumeSummary(req, res) {
   }
 }
 
+// Delete a resume
+async function deleteResume(req, res) {
+  try {
+    const { id } = req.params;
+    
+    const resume = await Resume.findByIdAndDelete(id);
+    
+    if (!resume) {
+      return res.status(404).json({
+        error: 'Resume not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Resume deleted successfully',
+      deletedId: id
+    });
+
+  } catch (error) {
+    console.error('Error in deleteResume:', error);
+    res.status(500).json({
+      error: 'Delete failed',
+      message: error.message
+    });
+  }
+}
+
 // Export all functions
 module.exports = {
   uploadResume,
   analyzeResume,
   getResume,
   getAllResumes,
-  getResumeSummary
+  getResumeSummary,
+  deleteResume
 };

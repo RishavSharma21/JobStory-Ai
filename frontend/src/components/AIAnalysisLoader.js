@@ -1,95 +1,62 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import './AIAnalysisLoader.css';
 
-const AIAnalysisLoader = ({ isVisible = true }) => {
-  const [progress, setProgress] = useState(0);
+const AIAnalysisLoader = ({ isVisible = false }) => {
   const [currentStep, setCurrentStep] = useState(0);
-  
+  const [progress, setProgress] = useState(0);
+
   const steps = [
-    'Reading resume...',
-    'Analyzing content...',
-    'Generating insights...',
-    'Finalizing report...'
+    '📄 Parsing Resume',
+    '🔍 Analyzing Content', 
+    '⚡ Checking ATS Score',
+    '✨ Generating Insights'
   ];
 
   useEffect(() => {
-    if (!isVisible) return;
-
-    const progressInterval = setInterval(() => {
-      setProgress(prev => {
-        if (prev >= 100) return 100;
-        return prev + Math.random() * 12;
-      });
-    }, 800);
+    if (!isVisible) {
+      setCurrentStep(0);
+      setProgress(0);
+      return;
+    }
 
     const stepInterval = setInterval(() => {
       setCurrentStep(prev => (prev + 1) % steps.length);
-    }, 2000);
+    }, 1500);
+
+    const progressInterval = setInterval(() => {
+      setProgress(prev => {
+        if (prev >= 95) return prev;
+        const increment = prev < 30 ? Math.floor(Math.random() * 8) + 3 :
+                         prev < 60 ? Math.floor(Math.random() * 5) + 2 :
+                         prev < 85 ? Math.floor(Math.random() * 3) + 1 :
+                         Math.random() > 0.7 ? 1 : 0;
+        return Math.min(prev + increment, 95);
+      });
+    }, 400);
 
     return () => {
-      clearInterval(progressInterval);
       clearInterval(stepInterval);
+      clearInterval(progressInterval);
     };
   }, [isVisible, steps.length]);
-
-  const sparkles = useMemo(() => {
-    const count = 14;
-    return Array.from({ length: count }).map(() => ({
-      left: `${Math.random() * 100}%`,
-      top: `${Math.random() * 100}%`,
-      delay: `${(Math.random() * 1.8).toFixed(2)}s`,
-      duration: `${(3.8 + Math.random() * 2.8).toFixed(2)}s`,
-      size: `${(5 + Math.random() * 5).toFixed(0)}px`,
-    }));
-  }, [isVisible]);
 
   if (!isVisible) return null;
 
   return (
-    <div className="simple-loader-overlay">
-      <div className="simple-loader-content">
-        {/* Sparkles Animation */}
-        <div className="ai-sparkles" aria-hidden="true">
-          {sparkles.map((s, i) => (
-            <span
-              key={i}
-              className="sparkle"
-              style={{
-                left: s.left,
-                top: s.top,
-                width: s.size,
-                height: s.size,
-                animationDelay: s.delay,
-                animationDuration: s.duration,
-              }}
-            />
+    <div className="loader-overlay">
+      <div className="loader-container">
+        <div className="loader-spinner"></div>
+        <h2>{steps[currentStep]}</h2>
+        <p>Powered by Gemini AI</p>
+        <div className="loader-progress">
+          <div className="loader-progress-bar" style={{ width: `${progress}%` }}></div>
+        </div>
+        <div className="loader-percentage">{Math.round(progress)}%</div>
+        
+        <div className="step-indicators">
+          {steps.map((_, idx) => (
+            <div key={idx} className={`step-dot ${idx === currentStep ? 'active' : idx < currentStep ? 'completed' : ''}`}></div>
           ))}
-        </div>
-
-        {/* Processing Prism Sweep */}
-        <div className="prism-bar" aria-hidden="true">
-          <div className="prism-sweep"></div>
-        </div>
-        
-        {/* Progress Indicator */}
-        <div className="simple-progress-container">
-          <div className="simple-progress-bar">
-            <div 
-              className="simple-progress-fill" 
-              style={{ width: `${Math.min(progress, 100)}%` }}
-            />
-          </div>
-          <div className="progress-text">{Math.floor(Math.min(progress, 100))}%</div>
-        </div>
-        
-        {/* Current Step */}
-        <div className="current-step">
-          {steps[currentStep]}
-        </div>
-        
-        {/* Sub Message */}
-        <div className="sub-message-simple">
-          Please wait while our AI analyzes your resume
         </div>
       </div>
     </div>

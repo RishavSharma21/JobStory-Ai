@@ -19,4 +19,7 @@ router.get('/:id', resumeController.getResume);
 // GET /api/resume - Get all resumes (history)
 router.get('/', resumeController.getAllResumes);
 
+// DELETE /api/resume/:id - Delete a resume
+router.delete('/:id', resumeController.deleteResume);
+
 module.exports = router;

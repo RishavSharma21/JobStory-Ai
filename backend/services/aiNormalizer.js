@@ -1,4 +1,4 @@
-// services/aiNormalizer.js - Map AI (campus) results to Resume.aiAnalysis schema
+// services/aiNormalizer.js - Map AI results to Resume.aiAnalysis schema
 
 function clamp(num, min, max) {
   return Math.max(min, Math.min(max, Number.isFinite(num) ? num : 0));
@@ -15,10 +15,9 @@ function mapAtsLevel(rawLevel, score) {
 
   const val = String(rawLevel || '').toLowerCase();
   if (['excellent', 'top tier', 'top-tier', 'outstanding'].some(k => val.includes(k))) return 'Excellent';
-  if (['strong candidate', 'very good', 'ready'].some(k => val.includes(k))) return 'Good';
+  if (['strong candidate', 'very good', 'ready', 'good'].some(k => val.includes(k))) return 'Good';
   if (['decent', 'average', 'ok', 'fair'].some(k => val.includes(k))) return 'Fair';
   if (['needs work', 'needs improvement', 'poor', 'weak'].some(k => val.includes(k))) return 'Poor';
-  // Fallback by score; default to Fair if score not usable
   if (typeof score === 'number') {
     const s = clamp(score, 0, 100);
     if (s >= 85) return 'Excellent';
@@ -29,56 +28,60 @@ function mapAtsLevel(rawLevel, score) {
   return 'Fair';
 }
 
-// Normalizes the campus placement JSON into the schema fields under aiAnalysis
+// Normalizes the NEW 5-feature AI response into the schema fields
 function normalizeCampusAnalysis(ai) {
-  const score = Number(ai?.campusReadinessScore?.score);
-  const levelRaw = ai?.campusReadinessScore?.level;
+  const score = Number(ai?.atsScore?.score) || 0;
+  const levelRaw = ai?.atsScore?.level || '';
 
-  const strengths = [];
-  if (Array.isArray(ai?.recruiterInsights?.technicalStrengths)) {
-    strengths.push(...ai.recruiterInsights.technicalStrengths);
-  }
-  if (Array.isArray(ai?.recruiterInsights?.academicHighlights)) {
-    strengths.push(...ai.recruiterInsights.academicHighlights);
-  }
-
-  const growthAreas = Array.isArray(ai?.recruiterInsights?.areasForImprovement)
-    ? ai.recruiterInsights.areasForImprovement
-    : [];
-
-  const recommendations = Array.isArray(ai?.recruiterInsights?.placementAdvice)
-    ? ai.recruiterInsights.placementAdvice
-    : [];
-
-  const skills = Array.isArray(ai?.skills) ? ai.skills : [];
+  // Extract from the new simplified structure
+  const grammarSpelling = Array.isArray(ai?.grammarSpelling) ? ai.grammarSpelling : [];
+  const quickFixes = Array.isArray(ai?.quickFixes) ? ai.quickFixes : [];
+  const skillsPresent = Array.isArray(ai?.skillKeywordGaps?.skills_present) ? ai.skillKeywordGaps.skills_present : [];
+  const missingSkills = Array.isArray(ai?.skillKeywordGaps?.critical_missing) ? ai.skillKeywordGaps.critical_missing : [];
+  
+  // Extract ATS improvement data
+  const atsImprovement = ai?.atsImprovement || {};
+  const missingKeywords = Array.isArray(atsImprovement.missingKeywords) ? atsImprovement.missingKeywords : [];
+  const atsQuickFixes = Array.isArray(atsImprovement.quickFixes) ? atsImprovement.quickFixes : [];
+  const formatWarnings = Array.isArray(atsImprovement.formatWarnings) ? atsImprovement.formatWarnings : [];
+  const estimatedImprovement = atsImprovement.estimatedImprovement || {
+    currentScore: score,
+    potentialScore: Math.min(score + 12, 100),
+    impact: 'Medium'
+  };
 
   return {
     atsScore: {
       score: clamp(score, 0, 100),
       level: mapAtsLevel(levelRaw, score),
-      explanation: ai?.campusReadinessScore?.explanation || ai?.summary || ''
+      explanation: ai?.atsScore?.explanation || ''
     },
-    recruiterInsights: {
-      overview: ai?.recruiterInsights?.overview || ai?.summary || '',
-      keyStrengths: strengths,
-      redFlags: [],
-      recommendations
+    atsImprovement: {
+      missingKeywords: missingKeywords,
+      quickFixes: atsQuickFixes,
+      formatWarnings: formatWarnings,
+      estimatedImprovement: {
+        currentScore: clamp(estimatedImprovement.currentScore || score, 0, 100),
+        potentialScore: clamp(estimatedImprovement.potentialScore || Math.min(score + 12, 100), 0, 100),
+        impact: estimatedImprovement.impact || 'Medium'
+      }
     },
-    strengths,
-    growthAreas,
+    grammarSpelling: grammarSpelling,
+    strengths: quickFixes.slice(0, 3),
+    growthAreas: quickFixes,
     jobMatching: {
-      targetRole: ai?.companyMatching?.targetRole || '',
-      matchPercentage: clamp(ai?.companyMatching?.suitability, 0, 100),
-      matchingSkills: skills, // heuristic
-      missingSkills: [],
-      recommendations: ai?.companyMatching?.recommendations || ''
+      targetRole: '',
+      matchPercentage: clamp(score, 0, 100),
+      matchingSkills: skillsPresent,
+      missingSkills: missingSkills,
+      recommendations: missingSkills.join(', ')
     },
     keywordAnalysis: {
-      presentKeywords: skills,
-      missingKeywords: [],
+      presentKeywords: skillsPresent,
+      missingKeywords: missingSkills,
       keywordDensity: 0
     },
-    overallSummary: ai?.summary || '',
+    overallSummary: `ATS Score: ${score}/100. ${quickFixes.length} improvements recommended.`,
     aiModel: ai?.aiModel || '',
     processedAt: ai?.processedAt ? new Date(ai.processedAt) : new Date(),
     processingTime: Number(ai?.processingTime) || undefined

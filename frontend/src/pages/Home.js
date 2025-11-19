@@ -46,57 +46,37 @@ const Home = ({ onResumeUpload, setJobRole, onGenerateStory, userResume, jobRole
     }
   };
 
-  // ✅ New function for story generation
+  // ✅ Function for story generation with REAL AI analysis
   const handleGenerateStory = async () => {
     if (jobRoleInput.trim() && isUploaded && userResume) {
-      setJobRole(jobRoleInput);
       setIsAnalyzing(true);
-
+      
       try {
-        // First, analyze the resume with AI if not already analyzed
-        let analysisResult;
+        // Fetch REAL AI analysis from backend
+        console.log('🔥 Analyzing resume with AI:', userResume.resumeId);
+        const analysisResult = await analyzeResume(userResume.resumeId, jobRoleInput);
+        console.log('🔥 AI Analysis Result:', analysisResult);
         
-        if (userResume.resumeId && !userResume.analysis) {
-          console.log('🤖 ANALYZING WITH REAL AI (v2.0) - Calling backend AI service...');
-          analysisResult = await analyzeResume(userResume.resumeId, jobRoleInput);
-          console.log('Analysis result:', analysisResult);
-        } else {
-          // Use existing analysis if available
-          analysisResult = userResume;
-        }
-
-        // Use the real resume data with AI analysis
-        const resumeDataForStory = {
-          ...userResume,
-          // Properly extract the analysis data from the API response
-          analysis: analysisResult.analysis || analysisResult.aiAnalysis,
-          targetJobRole: jobRoleInput,
-        };
-
-        console.log('Passing data to story generation:', resumeDataForStory);
-        onGenerateStory(resumeDataForStory, jobRoleInput);
-        navigate("/generate");
-        
+        // Pass REAL analysis data to story generation page
+        onGenerateStory(analysisResult, jobRoleInput);
+        navigate('/generate');
       } catch (error) {
-        console.error('Error during AI analysis:', error);
-        alert(`Failed to analyze resume: ${error.message}`);
+        console.error('❌ Analysis failed:', error);
+        alert('AI analysis failed: ' + error.message);
       } finally {
         setIsAnalyzing(false);
       }
-    } else {
-      if (!isUploaded) {
-        alert("Please upload a resume first!");
-      } else if (!jobRoleInput.trim()) {
-        alert("Please select or enter a job role!");
-      }
+      return;
     }
   };
 
   // ✅ Handle file upload and trim long names  
   const handleFileUpload = async (file) => {
     try {
+      console.log('📤 UPLOADING NEW RESUME:', file.name, 'Size:', file.size);
       // Make the actual API call
       const resumeResponse = await uploadResume(file, jobRoleInput);
+      console.log('📥 UPLOAD RESPONSE:', resumeResponse);
       
       // resumeResponse now contains the real API response
       onResumeUpload(resumeResponse);

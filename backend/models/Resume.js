@@ -92,6 +92,18 @@ const resumeSchema = new mongoose.Schema({
       explanation: String
     },
 
+    // ATS Improvement Suggestions
+    atsImprovement: {
+      missingKeywords: [String],
+      quickFixes: [String],
+      formatWarnings: [String],
+      estimatedImprovement: {
+        currentScore: Number,
+        potentialScore: Number,
+        impact: String
+      }
+    },
+
     // Recruiter Insights
     recruiterInsights: {
       overview: String,
