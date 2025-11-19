@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { analyzeResume } from '../utils/api';
 import './Analyze.css';
-import '../WinampGlass.css';
 
 const Analyze = () => {
   const location = useLocation();
