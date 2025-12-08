@@ -15,12 +15,16 @@ import {
   FaMicrochip,
   FaChartLine,
   FaStar,
-  FaUsers
+  FaUsers,
+  FaFileContract,
+  FaCheck
 } from 'react-icons/fa';
 import { FaArrowRight, FaArrowDown } from 'react-icons/fa';
 
 const Home = ({ onResumeUpload, setJobRole, onGenerateStory, userResume, jobRole }) => {
   const [jobRoleInput, setJobRoleInput] = useState("");
+  const [jobDescription, setJobDescription] = useState("");
+  const [showJDModal, setShowJDModal] = useState(false);
   const [isUploaded, setIsUploaded] = useState(false);
   const [fileName, setFileName] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -54,7 +58,7 @@ const Home = ({ onResumeUpload, setJobRole, onGenerateStory, userResume, jobRole
       try {
         // Fetch REAL AI analysis from backend
         console.log('🔥 Analyzing resume with AI:', userResume.resumeId);
-        const analysisResult = await analyzeResume(userResume.resumeId, jobRoleInput);
+        const analysisResult = await analyzeResume(userResume.resumeId, jobRoleInput, jobDescription);
         console.log('🔥 AI Analysis Result:', analysisResult);
         
         // Pass REAL analysis data to story generation page
@@ -129,87 +133,132 @@ const Home = ({ onResumeUpload, setJobRole, onGenerateStory, userResume, jobRole
 
           <div className="deepseek-section">
             <div className="deepseek-card">
-              <div className="input-container">
-                <div className="search-group">
-                  <svg
-                    className="search-icon"
-                    viewBox="0 0 24 24"
-                    width="20"
-                    height="20"
-                  >
-                    <path
-                      fill="currentColor"
-                      d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 
-                      16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 
-                      5.91 16 9.5 16c1.61 0 3.09-.59 
-                      4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 
-                      0C7.01 14 5 11.99 5 9.5S7.01 5 
-                      9.5 5 14 7.01 14 9.5 
-                      11.99 14 9.5 14z"
-                    />
-                  </svg>
-                  <input
-                    type="text"
-                    placeholder="What role are you targeting?"
-                    value={jobRoleInput}
-                    onChange={(e) => setJobRoleInput(e.target.value)}
-                    className="deepseek-input"
-                  />
-                </div>
-
-                {/* ✅ Resume Upload Button */}
-                <div className="upload-group">
-                  <div className="upload-btn">
-                    <FaUpload className="upload-icon" />
-
-                    {/* ✅ Show file name directly on button */}
-                    <span className="file-label">
-                      {fileName ? fileName : "Upload Resume"}
-                    </span>
-
-                    <input
-                      type="file"
-                      onChange={(e) => {
-                        if (e.target.files[0]) {
-                          handleFileUpload(e.target.files[0]);
-                        }
-                      }}
-                      accept=".pdf,.doc,.docx"
-                      className="file-input"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Quick Suggestions */}
-              <div className="suggestions-row">
-                <span className="suggestion-label">Quick Picks: </span>
-                <div className="suggestion-chips">
-                  {quickJobs.map((job, i) => (
-                    <button
-                      key={i}
-                      className={`suggestion-chip ${
-                        jobRoleInput === job ? "active" : ""
-                      }`}
-                      onClick={() => setJobRoleInput(job)}
+              {/* JD EXPANDED MODE - Takes full card */}
+              {showJDModal ? (
+                <div className="jd-full-card">
+                  <div className="jd-expanded-header">
+                    <h3>Add Job Description (Optional)</h3>
+                    <button 
+                      className="jd-close-btn"
+                      onClick={() => setShowJDModal(false)}
                     >
-                      {job}
+                      ✕
                     </button>
-                  ))}
+                  </div>
+                  <textarea
+                    placeholder="Paste the job description here - helps AI give better insights"
+                    value={jobDescription}
+                    onChange={(e) => setJobDescription(e.target.value)}
+                    className="jd-expanded-textarea"
+                    autoFocus
+                  />
+                  <button 
+                    className="jd-done-btn"
+                    onClick={() => setShowJDModal(false)}
+                  >
+                    {jobDescription.trim() ? '✓ Apply JD' : '⊘ Skip for Now'}
+                  </button>
                 </div>
-              </div>
+              ) : (
+                <>
+                  <div className="input-container">
+                    <div className={`search-group ${jobRoleInput.trim() ? 'filled' : ''}`}>
+                      <svg
+                        className="search-icon"
+                        viewBox="0 0 24 24"
+                        width="20"
+                        height="20"
+                      >
+                        <path
+                          fill="currentColor"
+                          d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 
+                          16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 
+                          5.91 16 9.5 16c1.61 0 3.09-.59 
+                          4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 
+                          0C7.01 14 5 11.99 5 9.5S7.01 5 
+                          9.5 5 14 7.01 14 9.5 
+                          11.99 14 9.5 14z"
+                        />
+                      </svg>
+                      <input
+                        type="text"
+                        placeholder="What role are you targeting?"
+                        value={jobRoleInput}
+                        onChange={(e) => setJobRoleInput(e.target.value)}
+                        className="deepseek-input"
+                      />
+                      {jobRoleInput.trim() && <FaCheck className="input-check-icon" />}
+                    </div>
 
-              {/* ✅ Generate Button Section */}
-              <div className="generate-buttons-container">
-                <button
-                  onClick={handleGenerateStory}
-                  className="deepseek-generate-btn"
-                  disabled={!jobRoleInput || !isUploaded || isAnalyzing}
-                >
-                  {isAnalyzing ? "AI is analyzing your resume..." : "Generate Interview Story"}
-                  {!isAnalyzing && <FaRocket className="generate-icon right" />}
-                </button>
-              </div>
+                    {/* Small JD button - LEFT */}
+                    <button 
+                      className={`jd-small-btn ${jobDescription.trim() ? 'filled' : ''}`}
+                      onClick={() => setShowJDModal(true)}
+                    >
+                      <FaFileContract className="jd-btn-icon" />
+                      <span className="jd-btn-label">
+                        {jobDescription.trim() ? 'JD Added' : 'Add JD'}
+                      </span>
+                      {jobDescription.trim() && <FaCheck className="jd-check-icon" />}
+                    </button>
+
+                    {/* Resume Upload Button - RIGHT */}
+                    <div className="upload-group">
+                      <div className={`upload-btn ${fileName ? 'filled' : ''}`}>
+                        {!fileName && <FaUpload className="upload-icon" />}
+
+                        {/* ✅ Show file name when uploaded, otherwise show "Upload Resume" */}
+                        <span className="file-label">
+                          {fileName ? fileName : "Upload Resume"}
+                        </span>
+
+                        {fileName && <FaCheck className="upload-check-icon" />}
+
+                        <input
+                          type="file"
+                          onChange={(e) => {
+                            if (e.target.files[0]) {
+                              handleFileUpload(e.target.files[0]);
+                            }
+                          }}
+                          accept=".pdf,.doc,.docx"
+                          className="file-input"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Quick Suggestions */}
+                  <div className="suggestions-row">
+                    <span className="suggestion-label">Quick Picks: </span>
+                    <div className="suggestion-chips">
+                      {quickJobs.map((job, i) => (
+                        <button
+                          key={i}
+                          className={`suggestion-chip ${
+                            jobRoleInput === job ? "active" : ""
+                          }`}
+                          onClick={() => setJobRoleInput(job)}
+                        >
+                          {job}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* ✅ Generate Button Section */}
+                  <div className="generate-buttons-container">
+                    <button
+                      onClick={handleGenerateStory}
+                      className="deepseek-generate-btn"
+                      disabled={!jobRoleInput || !isUploaded || isAnalyzing}
+                    >
+                      {isAnalyzing ? "AI is analyzing your resume..." : "Generate Interview Story"}
+                      {!isAnalyzing && <FaRocket className="generate-icon right" />}
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
 

@@ -2,8 +2,17 @@
 const fetch = require('node-fetch');
 
 // ====== OPTIMIZED PROMPT - CONCISE OUTPUT ======
-function buildCampusPlacementPrompt(resumeText, targetJobRole) {
-    return `You are a CONCISE ATS analyzer. Analyze this resume for ${targetJobRole || 'Software Developer'} role.
+function buildCampusPlacementPrompt(resumeText, targetJobRole, jobDescription = '') {
+    const jobDescriptionSection = jobDescription ? `
+JOB DESCRIPTION:
+${jobDescription}
+
+` : '';
+    
+    return `You are a CONCISE ATS analyzer. Analyze this resume for ${targetJobRole || 'Software Developer'} role.${jobDescription ? ' Reference the provided job description for matching keywords and requirements.' : ''}
+
+${jobDescriptionSection}RESUME:
+${resumeText}
 
 ⚠️ CRITICAL RULES - KEEP IT SHORT:
 - Use 1-2 SHORT sentences max for explanations
@@ -92,7 +101,7 @@ function extractJson(text) {
 }
 
 // Main AI processing function with retry logic and model fallbacks
-async function processWithAI(resumeDocument, targetJobRole = 'Not specified') {
+async function processWithAI(resumeDocument, targetJobRole = 'Not specified', jobDescription = '') {
     console.log(`Starting campus placement AI analysis for: ${resumeDocument.fileName}`);
     const startTime = Date.now();
 
@@ -148,7 +157,7 @@ async function processWithAI(resumeDocument, targetJobRole = 'Not specified') {
       console.log(`Attempt ${attempt}/${maxRetries}: Sending campus placement analysis prompt to Gemini API...`);
 
             // Build the campus placement prompt with actual values
-      const prompt = buildCampusPlacementPrompt(safeText, targetJobRole);
+      const prompt = buildCampusPlacementPrompt(safeText, targetJobRole, jobDescription);
       console.log(`[AI] Using Gemini model: ${model}`);
       
       // Ensure model name is clean (no models/ prefix for the ID part)

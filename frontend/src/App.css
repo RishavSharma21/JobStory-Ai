@@ -12,6 +12,31 @@
 
 html { margin: 0; padding: 0; width: 100%; height: 100%; }
 body { margin: 0; padding: 0; width: 100%; min-height: 100vh; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #121212; color: #f5f5f5; line-height: 1.6; }
+
+/* Dark Theme Scrollbar - Clean Design */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* Firefox Scrollbar */
+* {
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+  scrollbar-width: thin;
+}
+
 #root, .App { width: 100%; min-height: 100vh; margin: 0; padding: 0; }
 
 
@@ -333,7 +358,7 @@ h1.logo, .logo h1 {
   text-align: center;
   color: #ccc;
   font-size: 1rem;
-  margin-top: 3.5rem;
+  margin-top: 1.5rem;
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -610,12 +635,7 @@ h1.logo, .logo h1 {
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12);
 }
 
-.deepseek-card:hover {
-  border-color: rgba(255, 255, 255, 0.3);
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.08);
-}
-
-.input-container { display: flex; gap: 1rem; margin-bottom: 1.5rem; }
+.input-container { display: flex; gap: 1rem; margin-bottom: 1.5rem; align-items: flex-start; }
 .search-group { flex: 1; position: relative; display: flex; align-items: center; }
 .search-icon { position: absolute; left: 16px; color: #888; z-index: 2; }
 .deepseek-input {
@@ -629,14 +649,332 @@ h1.logo, .logo h1 {
   transition: all 0.3s ease;
 }
 
+.deepseek-input:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.35);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.08);
+}
+
 .deepseek-input:focus {
+  outline: none;
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.4);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.08);
+}
+
+.deepseek-input::placeholder {
+  color: #888;
+}
+
+/* Filled state for job role input - only checkmark, no color change */
+.search-group.filled .deepseek-input {
+  border-color: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.search-group.filled .deepseek-input:focus {
+  border-color: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.input-check-icon {
+  position: absolute;
+  right: 12px;
+  color: #22c55e;
+  font-size: 0.95rem;
+  z-index: 3;
+}
+
+/* Small JD Icon Button */
+.jd-small-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.8rem 1.05rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  color: #f5f5f5;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+  font-weight: 400;
+  white-space: nowrap;
+  height: 46px;
+  width: 160px;
+  line-height: 1.1;
+}
+
+.jd-small-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.35);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.08);
+}
+
+/* Filled state for JD button - only checkmark and text change, no color change */
+.jd-small-btn.filled {
+  border-color: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.jd-small-btn.filled:hover {
+  border-color: rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.08);
+}
+
+.jd-btn-icon {
+  font-size: 1rem;
+}
+
+.jd-btn-label {
+  font-size: 0.95rem;
+}
+
+.jd-check-icon {
+  color: #22c55e;
+  font-size: 0.9rem;
+}
+
+/* JD Inline Section */
+.jd-inline-section {
+  animation: slideDownSmooth 0.3s ease;
+  margin-bottom: 1.5rem;
+}
+
+@keyframes slideDownSmooth {
+  from {
+    opacity: 0;
+    transform: translateY(-15px);
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    max-height: 500px;
+  }
+}
+
+.jd-inline-textarea {
+  width: 100%;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  color: #f5f5f5;
+  font-size: 0.95rem;
+  font-family: inherit;
+  resize: vertical;
+  transition: all 0.3s ease;
+  min-height: 120px;
+}
+
+.jd-inline-textarea:focus {
   outline: none;
   background: rgba(255, 255, 255, 0.07);
   border-color: rgba(255, 255, 255, 0.4);
 }
 
-.deepseek-input::placeholder {
+.jd-inline-textarea::placeholder {
   color: #888;
+}
+
+/* JD Expanded Full Card */
+.jd-expanded-card-full {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  animation: expandCard 0.3s ease;
+  height: 100%;
+  min-height: 400px;
+}
+
+@keyframes expandCard {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* JD Full Card Mode */
+.jd-full-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  min-height: auto;
+}
+
+.jd-expanded-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  animation: slideDown 0.3s ease;
+  width: 100%;
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    max-height: 500px;
+  }
+}
+
+.jd-expanded-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.jd-expanded-header h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #f5f5f5;
+  font-weight: 400;
+}
+
+.jd-close-btn {
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.jd-close-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #f5f5f5;
+}
+
+.jd-expanded-textarea {
+  width: 100%;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  color: #f5f5f5;
+  font-size: 0.95rem;
+  font-family: inherit;
+  resize: none;
+  transition: all 0.3s ease;
+  min-height: 80px;
+}
+
+.jd-full-card .jd-expanded-textarea {
+  min-height: 80px;
+}
+
+.jd-expanded-textarea:focus {
+  outline: none;
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.jd-expanded-textarea::placeholder {
+  color: #888;
+}
+
+.jd-expanded-textarea-full {
+  flex: 1;
+  width: 100%;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  color: #f5f5f5;
+  font-size: 0.95rem;
+  font-family: inherit;
+  resize: none;
+  transition: all 0.3s ease;
+  min-height: 250px;
+}
+
+.jd-expanded-textarea-full:focus {
+  outline: none;
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.jd-expanded-textarea-full::placeholder {
+  color: #888;
+}
+
+.jd-done-btn {
+  padding: 0.8rem 1.5rem;
+  width: 100%;
+  height: 46px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  color: #f5f5f5;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  position: relative;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+.jd-done-btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.08), transparent 60%);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  border-radius: 12px;
+}
+
+.jd-done-btn:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1), 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.jd-done-btn:hover::before {
+  opacity: 1;
+}
+
+.jd-done-btn:active {
+  transform: scale(0.98);
+}
+
+/* Highlight when JD is filled */
+.jd-full-card:has(.jd-expanded-textarea:not(:placeholder-shown)) .jd-done-btn {
+  background: linear-gradient(135deg, rgba(59,130,246,0.18), rgba(99,102,241,0.18)), rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+.jd-full-card:has(.jd-expanded-textarea:not(:placeholder-shown)) .jd-done-btn:hover {
+  transform: translateY(-1px);
+  background: linear-gradient(135deg, rgba(59,130,246,0.24), rgba(99,102,241,0.24)), rgba(255,255,255,0.06);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1), 0 4px 12px rgba(0, 0, 0, 0.25);
 }
 
 .upload-group { display: flex; align-items: center; }
@@ -653,7 +991,7 @@ h1.logo, .logo h1 {
   font-size: 0.95rem;
   cursor: pointer;
   transition: all 0.3s ease;
-  min-width: 160px;
+  width: 160px;
   line-height: 1.1;
   height: 46px; /* near the search input height */
 }
@@ -662,10 +1000,34 @@ h1.logo, .logo h1 {
   border-color: rgba(255, 255, 255, 0.35); 
   box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.08);
 }
+
+/* Filled state for upload button - only checkmark, no color change */
+.upload-btn.filled {
+  border-color: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.upload-btn.filled:hover {
+  border-color: rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.08);
+}
+
 .upload-icon { 
   color: #888; 
   font-size: 0.95rem; /* small but readable */
 }
+
+.upload-check-icon {
+  color: #22c55e;
+  font-size: 0.9rem;
+}
+
+.jd-btn-icon {
+  color: #888;
+  font-size: 0.95rem;
+}
+
 /* Smaller label text inside compact upload button */
 .upload-btn .file-label {
   font-size: 0.9rem;

@@ -1,9 +1,10 @@
 // src/pages/History.js - Enhanced History Page with Dark Theme
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MdFolder, MdSearch, MdAdd, MdDelete, MdDescription, MdWork, MdVisibility, MdCheckCircle, MdHelpOutline, MdHistory } from 'react-icons/md';
+import { MdFolder, MdSearch, MdAdd, MdDelete, MdDescription, MdWork, MdVisibility, MdCheckCircle, MdHelpOutline, MdHistory, MdMoreVert, MdDownload, MdShare } from 'react-icons/md';
 import './History.css';
 import { getAllResumes } from '../utils/api';
+import { generateCompleteReport } from '../utils/pdfDownload';
 
 const History = ({ historyItems, onViewItem }) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -11,8 +12,10 @@ const History = ({ historyItems, onViewItem }) => {
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [backendResumes, setBackendResumes] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [menuOpenId, setMenuOpenId] = useState(null);
   const navigate = useNavigate();
   const sortMenuRef = useRef(null);
+  const menuRefs = useRef({});
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -20,14 +23,23 @@ const History = ({ historyItems, onViewItem }) => {
       if (sortMenuRef.current && !sortMenuRef.current.contains(event.target)) {
         setShowSortMenu(false);
       }
+      
+      // Check if click is outside all menu containers
+      let isClickInsideMenu = false;
+      Object.values(menuRefs.current).forEach(ref => {
+        if (ref && ref.contains(event.target)) {
+          isClickInsideMenu = true;
+        }
+      });
+      
+      if (!isClickInsideMenu && menuOpenId) {
+        setMenuOpenId(null);
+      }
     };
 
-    if (showSortMenu) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
+    document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showSortMenu]);
+  }, [menuOpenId]);
 
   // Fetch resumes from backend
   useEffect(() => {
@@ -124,6 +136,23 @@ const History = ({ historyItems, onViewItem }) => {
     } catch (error) {
       console.error('Error deleting resume:', error);
       alert('Failed to delete resume. Please try again.');
+    }
+  };
+
+  const handleDownloadReport = (item, e) => {
+    e.stopPropagation();
+    setMenuOpenId(null);
+    try {
+      const jobRole = item.resumeData?.targetJobRole || 'Not Specified';
+      const resumeName = item.resumeName || 'Resume';
+      const analysisData = item.analysis || {};
+      const achievements = item.story || '';
+      
+      generateCompleteReport(analysisData, jobRole, resumeName, achievements);
+      console.log('✅ Report downloaded successfully');
+    } catch (error) {
+      console.error('Error downloading report:', error);
+      alert('Failed to download report. Please try again.');
     }
   };
 
@@ -264,14 +293,41 @@ const History = ({ historyItems, onViewItem }) => {
                 <button className="view-btn" onClick={(e) => { e.stopPropagation(); handleViewItem(item); }}>
                   <MdVisibility style={{fontSize: '14px'}} /> View
                 </button>
-                <button 
-                  className="delete-btn" 
-                  onClick={(e) => handleDeleteItem(item.id, e)} 
-                  title="Delete this analysis"
-                  aria-label="Delete"
+                
+                {/* More Options Menu */}
+                <div 
+                  className="menu-container" 
+                  ref={el => menuRefs.current[item.id] = el}
                 >
-                  <MdDelete />
-                </button>
+                  <button 
+                    className="menu-btn" 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setMenuOpenId(menuOpenId === item.id ? null : item.id);
+                    }}
+                    title="More options"
+                    aria-label="More options"
+                  >
+                    <MdMoreVert />
+                  </button>
+                  
+                  {menuOpenId === item.id && (
+                    <div className="menu-dropdown">
+                      <button 
+                        className="menu-option"
+                        onClick={(e) => handleDownloadReport(item, e)}
+                      >
+                        <MdDownload style={{fontSize: '16px'}} /> Download Report
+                      </button>
+                      <button 
+                        className="menu-option delete-option"
+                        onClick={(e) => handleDeleteItem(item.id, e)}
+                      >
+                        <MdDelete style={{fontSize: '16px'}} /> Delete
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           ))}

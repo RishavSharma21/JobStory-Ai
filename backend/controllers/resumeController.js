@@ -152,8 +152,9 @@ async function analyzeResume(req, res) {
 
     // Get job role from request body
     const jobRole = req.body.jobRole || 'Not specified';
+    const jobDescription = req.body.jobDescription || '';
 
-    console.log('🔍 Analyzing resume ID:', id, 'for job role:', jobRole);
+    console.log('🔍 Analyzing resume ID:', id, 'for job role:', jobRole, jobDescription ? '(with JD provided)' : '(no JD)');
 
     // Find resume in database
     const resume = await Resume.findById(id);
@@ -216,7 +217,7 @@ async function analyzeResume(req, res) {
     resume.targetJobRole = jobRole; // Update job role
     await resume.save();
 
-    const aiResults = await processWithAI(resume, jobRole);
+    const aiResults = await processWithAI(resume, jobRole, jobDescription);
     console.log('✅ AI analysis completed. ATS Score:', aiResults?.atsScore?.score);
 
   // Normalize AI results to match schema before saving

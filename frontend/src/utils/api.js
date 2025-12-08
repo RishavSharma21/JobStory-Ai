@@ -35,12 +35,15 @@ export const uploadResume = async (file, jobRole = '') => {
   }
 };
 
-export const analyzeResume = async (resumeId, jobRole) => {
+export const analyzeResume = async (resumeId, jobRole, jobDescription = '') => {
   try {
     const response = await fetch(`${API_BASE_URL}/api/resume/${resumeId}/analyze`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ jobRole })
+      body: JSON.stringify({ 
+        jobRole,
+        ...(jobDescription && { jobDescription })
+      })
     });
 
     if (!response.ok) {
