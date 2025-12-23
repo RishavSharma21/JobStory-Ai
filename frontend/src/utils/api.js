@@ -1,5 +1,5 @@
 // frontend/src/utils/api.js
-const API_BASE_URL = 'http://localhost:5000';
+export const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 export const uploadResume = async (file, jobRole = '') => {
   const formData = new FormData();
@@ -40,7 +40,7 @@ export const analyzeResume = async (resumeId, jobRole, jobDescription = '') => {
     const response = await fetch(`${API_BASE_URL}/api/resume/${resumeId}/analyze`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
+      body: JSON.stringify({
         jobRole,
         ...(jobDescription && { jobDescription })
       })

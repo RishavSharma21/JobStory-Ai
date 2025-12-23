@@ -4,34 +4,37 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import "../App.css";
 
-const Header = () => {
+const Header = ({ user, onLogout, onLoginClick }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [user, setUser] = useState(null);
-  const [dropdownView, setDropdownView] = useState("main"); 
+  // User state is now managed by parent
+  const [dropdownView, setDropdownView] = useState("main");
   const [theme, setTheme] = useState("night");
-  
+
   const navigate = useNavigate();
   const location = useLocation();
   const dropdownRef = useRef(null);
 
-  useEffect(() => {
-    const savedUser = JSON.parse(localStorage.getItem("user"));
-    if (savedUser) {
-      setUser(savedUser);
-    }
-    // To see the logged-in menu, uncomment the line below
-    setUser({ name: "Guest" }); 
-  }, []);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
-  const handleLogout = () => {
-    localStorage.removeItem("user");
-    setUser(null);
+  const handleClickLogout = () => {
+    // Show confirmation modal
+    setShowLogoutConfirm(true);
     setIsDropdownOpen(false);
+  };
+
+  const confirmLogout = () => {
+    if (onLogout) onLogout();
+    setShowLogoutConfirm(false);
     navigate('/');
   };
 
+  const cancelLogout = () => {
+    setShowLogoutConfirm(false);
+  };
+
   const handleLoginSignup = () => {
-    navigate('/login');
+    if (onLoginClick) onLoginClick();
+    setIsDropdownOpen(false);
   };
 
   // Navigation handlers
@@ -60,12 +63,12 @@ const Header = () => {
     if (!isDropdownOpen) {
       setTimeout(() => {
         setDropdownView("main");
-      }, 300); 
+      }, 300);
     }
   }, [isDropdownOpen]);
-  
+
   useEffect(() => {
-    document.body.className = ''; 
+    document.body.className = '';
     document.body.classList.add(`${theme}-theme`);
     console.log(`Theme changed to: ${theme}`);
   }, [theme]);
@@ -74,14 +77,14 @@ const Header = () => {
     <header className="header">
       <div className="header-container">
         {/* Logo Section - Now clickable to go home */}
-        <div className="logo" onClick={handleLogoClick} style={{cursor: 'pointer'}}>
+        <div className="logo" onClick={handleLogoClick} style={{ cursor: 'pointer' }}>
           <div className="logo-icon">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-              <path d="M5 5C5 3.89543 5.89543 3 7 3H12H17C18.1046 3 19 3.89543 19 5V12V19C19 20.1046 18.1046 21 17 21H12H7C5.89543 21 5 20.1046 5 19V12V5Z" fill="white" opacity="0.9"/>
-              <path d="M8 8H16V10H8V8Z" fill="#3b82f6"/>
-              <path d="M8 12H16V14H8V12Z" fill="#3b82f6"/>
-              <path d="M8 16H13V18H8V16Z" fill="#3b82f6"/>
-              <path d="M15 16C15 16.5523 15.4477 17 16 17C16.5523 17 17 16.5523 17 16C17 15.4477 16.5523 15 16 15C15.4477 15 15 15.4477 15 16Z" fill="#3b82f6"/>
+              <path d="M5 5C5 3.89543 5.89543 3 7 3H12H17C18.1046 3 19 3.89543 19 5V12V19C19 20.1046 18.1046 21 17 21H12H7C5.89543 21 5 20.1046 5 19V12V5Z" fill="#10b981" opacity="1" />
+              <path d="M8 8H16V10H8V8Z" fill="#ffffff" />
+              <path d="M8 12H16V14H8V12Z" fill="#ffffff" />
+              <path d="M8 16H13V18H8V16Z" fill="#ffffff" />
+              <path d="M15 16C15 16.5523 15.4477 17 16 17C16.5523 17 17 16.5523 17 16C17 15.4477 16.5523 15 16 15C15.4477 15 15 15.4477 15 16Z" fill="#ffffff" />
             </svg>
           </div>
           <h1 className="logo">JobStory<span>Ai</span></h1>
@@ -99,7 +102,7 @@ const Header = () => {
             </div>
             <span className="profile-text">{user ? user.name : "Guest"}</span>
           </div>
-          
+
           <div className={`profile-dropdown ${isDropdownOpen ? "show" : ""} ${!user ? "logged-out" : ""}`}>
             {dropdownView === "main" ? (
               <>
@@ -110,8 +113,8 @@ const Header = () => {
                   {user && (
                     <>
                       <li className="dropdown-item">
-                        <NavLink 
-                          to="/" 
+                        <NavLink
+                          to="/"
                           className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}
                           end
                           onClick={() => setIsDropdownOpen(false)}
@@ -127,10 +130,10 @@ const Header = () => {
                           <span>Home</span>
                         </NavLink>
                       </li>
-                      
+
                       <li className="dropdown-item">
-                        <NavLink 
-                          to="/history" 
+                        <NavLink
+                          to="/history"
                           className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}
                           onClick={() => setIsDropdownOpen(false)}
                         >
@@ -147,11 +150,13 @@ const Header = () => {
                   )}
 
                   {/* --- Minimal change below: wrap in div.nav-link for consistent layout --- */}
-                  <li className="dropdown-item">
-                    <div className="nav-link" onClick={() => setDropdownView("theme")}>
+                  <li className="dropdown-item" style={{ opacity: 0.5, cursor: 'not-allowed', pointerEvents: 'none' }}>
+                    <div className="nav-link">
                       <div className="dropdown-icon">
+                        {/* Lock Icon */}
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path>
+                          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
                         </svg>
                       </div>
                       <span>Theme</span>
@@ -159,19 +164,23 @@ const Header = () => {
                   </li>
 
                   <li className="dropdown-item">
-                    <div className="nav-link" onClick={() => alert("Contact Us Page")}>
+                    <NavLink
+                      to="/contact"
+                      className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}
+                      onClick={() => setIsDropdownOpen(false)}
+                    >
                       <div className="dropdown-icon">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z"></path>
                         </svg>
                       </div>
                       <span>Contact Us</span>
-                    </div>
+                    </NavLink>
                   </li>
 
                   {user ? (
                     <li className="dropdown-item">
-                      <div className="nav-link" onClick={handleLogout}>
+                      <div className="nav-link" onClick={handleClickLogout}>
                         <div className="dropdown-icon">
                           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
@@ -225,6 +234,20 @@ const Header = () => {
           </div>
         </div>
       </div>
+
+      {/* Logout Confirmation Modal */}
+      {showLogoutConfirm && (
+        <div className="logout-modal-overlay">
+          <div className="logout-modal">
+            <h3>Sign Out?</h3>
+            <p>Are you sure you want to sign out of your account?</p>
+            <div className="logout-actions">
+              <button className="cancel-btn" onClick={cancelLogout}>Cancel</button>
+              <button className="confirm-btn" onClick={confirmLogout}>Sign Out</button>
+            </div>
+          </div>
+        </div>
+      )}
     </header>
   );
 };

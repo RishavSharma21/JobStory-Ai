@@ -60,6 +60,13 @@ try {
   app.use('/api/ai', fallback);
 }
 
+// Auth Routes (New)
+try {
+  app.use('/api/auth', require('./routes/auth'));
+} catch (e) {
+  console.error('[Route Load] auth routes failed:', e?.message);
+}
+
 // Test route - Visit http://localhost:5000 to see if server is running
 app.get('/', (req, res) => {
   res.json({ message: 'Resume Analyzer Backend API is running!', mode: process.env.AI_MODE || 'normal' });

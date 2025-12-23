@@ -1,80 +1,70 @@
 // services/aiService.js - PRECISE & TOKEN-EFFICIENT Campus Placement Resume Analysis
 const fetch = require('node-fetch');
 
-// ====== NEW PROMPT - 7 CORE FEATURES ONLY ======
+// ====== SIMPLIFIED PROMPT - LESS TEXT, MORE RELIABLE ======
 function buildCampusPlacementPrompt(resumeText, targetJobRole) {
-    return `You are a senior campus recruiter analyzing a fresher resume for EXACT resume issues.
-CRITICAL: Return ONLY JSON. Be PRECISE - analyze ONLY what's in resume. Match format exactly.
+    return `Analyze this resume for a ${targetJobRole || 'general'} role. Return ONLY valid JSON. Keep explanations concise (max 15 words).
 
-Target Role: ${targetJobRole || 'Not specified'}
 Resume:
 ${resumeText}
 
-===RETURN THIS JSON ONLY===
-
+Required JSON Structure:
 {
-  "atsScore": {
-    "score": <0-100: layout & ATS compatibility assessment>,
-    "level": "Poor|Fair|Good|Excellent",
-    "explanation": "<2 sentences with EXACT issues found. Example: 'Tables detected - ATS cannot parse (−15). No margins (−5). Score: 80/100.' OR 'Clean format, single column, no ATS risks. Score: 95/100.'"
-  },
-  "mistakes": [
-    {
-      "type": "Spelling|Grammar|Formatting",
-      "text": "<EXACT typo/error from resume. Example: 'Responsibilites→Responsibilities' OR 'Extra space before colon: Skills :' OR 'Inconsistent bullet point formatting'"
-    }
-  ],
-  "redFlags": [
-    "<CONCRETE issue observed. Example: 'No metrics in bullets - replaced 'Managed' with 'Managed X orders' to show impact' OR 'Job description reads as duties, not achievements - missing action verbs' OR 'Unexplained 6-month gap in timeline' OR 'Only 1-2 skills listed despite 2 year internship'"
-  ],
+  "atsScore": {"score": 0-100, "level": "Poor/Fair/Good/Excellent", "explanation": "brief reason"},
+  "readabilityScore": {"score": 0-100, "level": "Hard/Moderate/Easy", "explanation": "brief reason"},
+  "formatScore": {"score": 0-100, "level": "Poor/Weak/Average/Good", "explanation": "brief reason"},
+  "mistakes": [{"type": "Spelling/Grammar", "text": "error found"}],
+  "redFlags": ["issue 1", "issue 2"],
   "recruiterInsights": {
-    "overview": "<2-3 sentences, honest fresher assessment. Example: 'Decent fresher - has projects, 8.2 CGPA, shows learning. Main issue: vague bullet points, no numbers. Quick bullet rewrite = strong profile.' OR 'Weak fresher - 6.1 CGPA below cutoff, 1 small project, no internship. Better for tier-2 unless significant changes made.'",
-    "keyStrengths": [
-      "<SPECIFIC strength found. Example: 'Full-stack MERN + GitHub link + deployed - shows real capability beyond tutorials (most freshers lack this)' OR '8.5+ CGPA with relevant courses supports tier-1 targets' OR 'Internship with 2-year duration shows commitment'"
-    ],
-    "recommendations": [
-      "<EXACT change needed. Example: 'Change bullet from 'Worked on login feature' to 'Implemented secure JWT-based login, reduced unauthorized access attempts by 90%' OR 'Add deployed links to projects OR 'Replace 'Assisted with UI' with 'Led UI redesign, improved page speed from 3.2s to 1.1s'"
-    ]
+    "overview": "1 sentence summary",
+    "keyStrengths": ["strength 1", "strength 2"],
+    "recommendations": ["fix 1", "fix 2"]
   },
-  "mistakes_by_category": {
-    "spelling_grammar_count": <number>,
-    "formatting_inconsistencies": <number>,
-    "weak_verbs_count": <number>
-  },
-  "quickFixes": [
-    "<Immediate action. Example: 'Fix Responsibilites typo on line 2' OR 'Add GPA: 8.5/10 to education' OR 'Remove unclear objectives section' OR 'Add date ranges MM/YY-MM/YY for all roles' OR 'Fix bullet formatting - inconsistent dashes'"
-  ],
-  "skillKeywordGaps": {
-    "skills_present": [<extract exact skills mentioned>],
-    "critical_missing": [
-      "<SPECIFIC gap for target role. For 'Frontend Dev': 'Testing (Jest/Vitest) - critical but missing' OR 'API consumption (REST/GraphQL) - not mentioned' OR For 'Backend': 'Database design (schema, normalization) - no evidence' OR For 'Campus/Service': 'DSA (problem solving practice) - no mention OR GitHub portfolio - no link'"
-    ]
-  }
-}
-
-===ANALYSIS RULES===
-1. PRECISE NOT GENERIC: If resume says 'Responsibilites', mention THAT typo, not 'spelling errors'.
-2. EXACT ISSUES: 'Weak bullets' is bad. 'Changed Managed to Led + added metric' is good.
-3. EXTRACT EXACTLY: Don't infer. If skills not mentioned, don't add.
-4. TARGET-SPECIFIC GAPS:
-   - Frontend: React hooks? Testing? Deployment links?
-   - Backend: API design? Database normalization? Scalability?
-   - Campus/Service: DSA practice? Problem solving? Communication?
-5. CAMPUS CONTEXT: Freshers = learning expected. Judge on: Projects + Grades + Communication + DSA readiness.
-6. HONEST NOT FLUFFY: "No communication skills shown" if no clubs/tutoring/leadership visible. NOT generic praise.
-7. SPECIFIC STRENGTH: "Deployed 3 projects to Vercel (most freshers don't)" beats "Good projects".`;
+  "mistakes_by_category": {"spelling_grammar_count": 0, "formatting_inconsistencies": 0, "weak_verbs_count": 0},
+  "quickFixes": ["fix 1", "fix 2"],
+  "skillKeywordGaps": {"skills_present": ["skill1"], "critical_missing": ["gap1"]}
+}`;
 }
 
 // Utility: extract JSON block even if model wrapped it in prose/code fences
 function extractJson(text) {
   if (!text) return null;
-  let t = text.trim().replace(/^```json\s*|\s*```$/g, '');
-  try { return JSON.parse(t); } catch (_) { /* try fallback */ }
+  let t = text.trim();
+  
+  // Remove markdown code blocks if present
+  t = t.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '');
+  
+  // Try direct parse first
+  try { return JSON.parse(t); } catch (_) { /* continue to extraction */ }
+  
+  // Extract JSON from text
   const first = t.indexOf('{');
   const last = t.lastIndexOf('}');
+  
   if (first !== -1 && last !== -1 && last > first) {
-    const slice = t.slice(first, last + 1);
-    try { return JSON.parse(slice); } catch (_) { /* fall through */ }
+    let slice = t.slice(first, last + 1);
+    
+    // Try parsing the slice
+    try { return JSON.parse(slice); } catch (err) {
+      console.log(`JSON parse error after cleanup: ${err.message}`);
+      
+      // Attempt to repair truncated JSON
+      // This is a simple heuristic repair
+      try {
+        // If it looks like it was cut off, try to close it
+        // This is very basic and might not work for complex nested structures
+        // but it helps with simple truncations
+        const repaired = slice + '"}'; // Try closing a string and the object
+        return JSON.parse(repaired);
+      } catch (e) {
+         try {
+            const repaired2 = slice + '}'; // Try just closing the object
+            return JSON.parse(repaired2);
+         } catch (e2) {
+             // Give up
+         }
+      }
+    }
   }
   return null;
 }
@@ -113,12 +103,10 @@ async function processWithAI(resumeDocument, targetJobRole = 'Not specified') {
     }
 
   const maxRetries = 3;
-  const retryDelayBase = 800;
-  const primaryModel = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
-  const fallbackModels = (process.env.GEMINI_MODEL_FALLBACKS || 'gemini-flash-latest,gemini-2.0-flash')
-    .split(',')
-    .map(s => s.trim())
-    .filter(Boolean);
+  const retryDelayBase = 1000;
+  // Prioritize stable 1.5-flash to avoid 429s and truncation
+  const primaryModel = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
+  const fallbackModels = ['gemini-2.5-flash', 'gemini-1.5-pro'];
   const modelCandidates = [primaryModel, ...fallbackModels];
 
   const MAX_CHARS = 18000;
@@ -141,11 +129,11 @@ async function processWithAI(resumeDocument, targetJobRole = 'Not specified') {
                     }]
                 }],
                 generationConfig: {
-      temperature: 0.1,
-      maxOutputTokens: 1500,
-      topP: 0.9,
-      topK: 40,
-      response_mime_type: 'application/json'
+                    temperature: 0.2,
+                    maxOutputTokens: 4000,
+                    topP: 0.95,
+                    topK: 40,
+                    responseMimeType: "application/json"
                 }
             };
 
@@ -158,29 +146,25 @@ async function processWithAI(resumeDocument, targetJobRole = 'Not specified') {
 
             if (!apiResponse.ok) {
                 const errorText = await apiResponse.text();
-                console.error(`Gemini API Error (${apiResponse.status}):`, errorText);
+                console.error(`Gemini API Error (${apiResponse.status}) for ${model}:`, errorText);
                 
-                if (apiResponse.status === 503 || apiResponse.status === 429 || apiResponse.status === 500) {
-          if (attempt < maxRetries) {
-            const jitter = Math.floor(Math.random() * 500);
-            const delay = retryDelayBase * Math.pow(2, attempt - 1) + jitter;
-            console.log(`Retrying in ${delay}ms...`);
-            await new Promise(resolve => setTimeout(resolve, delay));
-                        continue;
-                    } else {
-                        console.log('All retry attempts failed, using fallback...');
-            const fb = generateCampusPlacementFallback(resumeText, targetJobRole);
-            fb.warning = `Gemini error ${apiResponse.status}. Fallback used.`;
-            fb.fallbackReason = `api_error_${apiResponse.status}`;
-            return fb;
-                    }
-                } else {
-                    console.error(`Non-retryable error (${apiResponse.status})`);
-          const fb = generateCampusPlacementFallback(resumeText, targetJobRole);
-          fb.warning = `Gemini error ${apiResponse.status}. Fallback used.`;
-          fb.fallbackReason = `api_error_${apiResponse.status}`;
-          return fb;
+                // CRITICAL FIX: If Rate Limited (429), DO NOT RETRY this model. Switch to next model immediately.
+                if (apiResponse.status === 429) {
+                    console.warn(`[AI] Quota exceeded for ${model}. Switching to next model immediately.`);
+                    break; // Break inner retry loop, move to next model
                 }
+
+                if (apiResponse.status === 503 || apiResponse.status === 500) {
+                    if (attempt < maxRetries) {
+                        const delay = retryDelayBase * attempt;
+                        console.log(`Server error, retrying in ${delay}ms...`);
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                        continue;
+                    }
+                }
+                
+                // For other errors or exhausted retries, break to next model
+                break; 
             }
 
             const json = await apiResponse.json();

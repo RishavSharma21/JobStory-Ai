@@ -10,12 +10,15 @@
     "eject": "react-scripts eject"
   },
   "dependencies": {
+    "@react-oauth/google": "^0.13.4",
     "axios": "^1.7.7",
+    "jwt-decode": "^4.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-icons": "^5.5.0",
     "react-router-dom": "^7.9.1",
-    "react-scripts": "5.0.1"
+    "react-scripts": "5.0.1",
+    "twemoji": "^14.0.2"
   },
   "devDependencies": {
     "autoprefixer": "^10.4.19",

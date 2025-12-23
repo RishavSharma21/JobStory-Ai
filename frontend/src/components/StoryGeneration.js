@@ -1,6 +1,6 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useMemo, useRef, useState, useEffect } from 'react';
 // Using Material Design icon set for a consistent visual language
-import { MdSecurity, MdSpellcheck, MdFormatListBulleted, MdReportProblem, MdBuild, MdDownload, MdRefresh, MdDescription, MdAutoAwesome, MdPerson, MdCode, MdEditNote, MdLightbulb, MdRocket } from 'react-icons/md';
+import { MdSecurity, MdSpellcheck, MdFormatListBulleted, MdReportProblem, MdBuild, MdDownload, MdRefresh, MdDescription, MdAutoAwesome, MdPerson, MdCode, MdEditNote, MdLightbulb, MdRocket, MdLock, MdInfoOutline, MdClose, MdHelpOutline, MdWarning } from 'react-icons/md';
 import './StoryGeneration.css';
 import { generateCompleteReport } from '../utils/pdfDownload';
 
@@ -9,7 +9,7 @@ const StoryGeneration = ({ resumeData, onSaveToHistory, onBack }) => {
   console.log('🔍 StoryGeneration resumeData:', resumeData);
   console.log('🔍 Analysis data:', resumeData?.analysis);
   console.log('🔍 Full object keys:', resumeData ? Object.keys(resumeData) : 'No resumeData');
-  
+
   // Safety check - if no resumeData, show loading state
   if (!resumeData) {
     return (
@@ -23,19 +23,77 @@ const StoryGeneration = ({ resumeData, onSaveToHistory, onBack }) => {
       </div>
     );
   }
-  
+
   // Extract job role and resume name from resumeData
   const jobRole = resumeData?.targetJobRole || "Not specified";
   const resumeName = resumeData?.fileName || "resume.pdf";
+  const fileUrl = resumeData?.fileUrl; // URL for resume preview
   const fileSize = typeof resumeData?.fileSize === 'number' ? `${(resumeData.fileSize / 1024).toFixed(1)} KB` : "Unknown";
 
   // Use real analysis data from resumeData instead of mock data
   const analysisData = resumeData?.analysis || resumeData?.aiAnalysis || {};
-  console.log('🔍 Extracted analysisData:', analysisData);
-  
+
+  // --- INDUSTRY READY DATA MAPPING (WITH POLYFILLS) ---
+  // Map the new backend structure to the frontend variables, with fallbacks for legacy data
+  const overallScore = analysisData.overallScore || analysisData.atsScore?.score || 0;
+
+  // Polyfill Section Scores if missing
+  let sectionScores = analysisData.sectionScores || {};
+  if (Object.keys(sectionScores).length === 0 && overallScore > 0) {
+    // Estimate section scores based on overall score
+    const base = Math.round(overallScore / 10);
+    sectionScores = {
+      education: Math.min(10, base + 1),
+      skills: Math.min(10, base),
+      projects: Math.max(1, base - 1),
+      experience: Math.max(1, base - 1),
+      formatting: Math.min(10, base + 1)
+    };
+  }
+
+  // Polyfill Red Flags if missing
+  let redFlagsList = analysisData.redFlags || [];
+  if (redFlagsList.length === 0) {
+    if (analysisData.recruiterInsights?.concerningAreas?.length > 0) {
+      redFlagsList = analysisData.recruiterInsights.concerningAreas;
+    } else if (analysisData.grammarSpelling?.length > 0) {
+      redFlagsList = ["Multiple grammar issues detected", "Proofreading required"];
+    } else if (overallScore < 50) {
+      redFlagsList = ["Low keyword match", "Weak impact descriptions"];
+    }
+  }
+
+  // Polyfill Action Plan if missing
+  let actionPlan = analysisData.actionPlan || {};
+  if (!actionPlan.high && !actionPlan.medium) {
+    const legacyFixes = analysisData.quickFixes || analysisData.recruiterInsights?.recommendations || [];
+
+    if (legacyFixes.length > 0) {
+      actionPlan = {
+        high: legacyFixes.slice(0, 2),
+        medium: legacyFixes.slice(2, 5),
+        low: legacyFixes.slice(5)
+      };
+    }
+  }
+
+  // Polyfill Recruiter Impression
+  let recruiterImpression = analysisData.recruiterImpression || {};
+  if (!recruiterImpression.verdict) {
+    recruiterImpression = {
+      verdict: overallScore > 70 ? "Positive" : overallScore > 50 ? "Neutral" : "Negative",
+      skimTime: "8-10 seconds",
+      topObservation: analysisData.summary || "Standard resume format detected."
+    };
+  }
+
+  // Fallback for older data structure
+  const atsScoreValue = overallScore;
+  const atsScoreLevel = analysisData.atsScore?.level || (overallScore > 70 ? "Good" : "Average");
+
   // Check if this is a fallback analysis due to AI service being unavailable
   const isAIUnavailable = analysisData.isServerUnavailable || false;
-  
+
   // Provide comprehensive fallback data
   const fallbackData = {
     atsScore: {
@@ -57,55 +115,34 @@ const StoryGeneration = ({ resumeData, onSaveToHistory, onBack }) => {
 
   // Create safe display data with comprehensive checks
   const createSafeDisplayData = () => {
-    console.log('🔍 Creating safe display data from:', analysisData);
-    
     // If we have no analysis data at all, use all fallbacks
     if (!analysisData || Object.keys(analysisData).length === 0) {
-      console.log('🔍 No analysis data, using all fallbacks');
       return fallbackData;
     }
 
     // Build safe data structure piece by piece
     const safeData = {
       atsScore: {
-        score: (analysisData.atsScore && typeof analysisData.atsScore.score === 'number') 
-          ? analysisData.atsScore.score 
-          : fallbackData.atsScore.score,
-        level: (analysisData.atsScore && analysisData.atsScore.level) 
-          ? analysisData.atsScore.level 
-          : fallbackData.atsScore.level,
-        explanation: (analysisData.atsScore && analysisData.atsScore.explanation) 
-          ? analysisData.atsScore.explanation 
-          : fallbackData.atsScore.explanation
+        score: overallScore,
+        level: atsScoreLevel,
+        explanation: analysisData.summary || analysisData.atsScore?.explanation || "Analysis complete."
       },
       recruiterInsights: {
-        overview: (analysisData.recruiterInsights && analysisData.recruiterInsights.overview) 
-          ? analysisData.recruiterInsights.overview 
-          : fallbackData.recruiterInsights.overview,
-        keyStrengths: (analysisData.recruiterInsights && Array.isArray(analysisData.recruiterInsights.keyStrengths)) 
-          ? analysisData.recruiterInsights.keyStrengths 
-          : fallbackData.recruiterInsights.keyStrengths,
-        concerningAreas: (analysisData.recruiterInsights && Array.isArray(analysisData.recruiterInsights.concerningAreas)) 
-          ? analysisData.recruiterInsights.concerningAreas 
-          : fallbackData.recruiterInsights.concerningAreas,
-        recommendations: (analysisData.recruiterInsights && Array.isArray(analysisData.recruiterInsights.recommendations)) 
-          ? analysisData.recruiterInsights.recommendations 
-          : fallbackData.recruiterInsights.recommendations
+        overview: recruiterImpression.verdict || analysisData.recruiterInsights?.overview || "Analysis complete.",
+        keyStrengths: analysisData.recruiterInsights?.keyStrengths || [],
+        concerningAreas: redFlagsList.length > 0 ? redFlagsList : (analysisData.recruiterInsights?.concerningAreas || []),
+        recommendations: [
+          ...(actionPlan.high || []),
+          ...(actionPlan.medium || [])
+        ]
       },
       jobMatching: {
-        matchPercentage: (analysisData.jobMatching && typeof analysisData.jobMatching.matchPercentage === 'number') 
-          ? analysisData.jobMatching.matchPercentage 
-          : fallbackData.jobMatching.matchPercentage,
-        recommendations: (analysisData.jobMatching && analysisData.jobMatching.recommendations) 
-          ? analysisData.jobMatching.recommendations 
-          : fallbackData.jobMatching.recommendations
+        matchPercentage: overallScore,
+        recommendations: "See action plan below."
       },
-      overallAssessment: (analysisData.overallAssessment && typeof analysisData.overallAssessment === 'string') 
-        ? analysisData.overallAssessment 
-        : "Analysis in progress..."
+      overallAssessment: analysisData.summary || "Analysis complete."
     };
 
-    console.log('🔍 Created safe display data:', safeData);
     return safeData;
   };
 
@@ -116,29 +153,35 @@ const StoryGeneration = ({ resumeData, onSaveToHistory, onBack }) => {
   const wordCount = useMemo(() => (text ? text.split(/\s+/).length : 0), [text]);
   const estPages = useMemo(() => (wordCount ? (wordCount / 600).toFixed(1) : '0.0'), [wordCount]);
 
-  // Simple readability estimate (proxy to Flesch): longer words/lines => harder
+  // Readability score from AI (fallback to calculated estimate)
   const readability = useMemo(() => {
+    const aiScore = analysisData?.readabilityScore?.score;
+    if (aiScore !== undefined && aiScore !== null) return aiScore;
+
+    // Fallback calculation
     if (!text) return 52;
     const words = text.split(/\s+/);
-    const avgLen = words.reduce((a,w)=>a+(w.length||0),0)/(words.length||1);
-    const score = Math.max(0, Math.min(100, Math.round(110 - avgLen*10)));
+    const avgLen = words.reduce((a, w) => a + (w.length || 0), 0) / (words.length || 1);
+    const score = Math.max(0, Math.min(100, Math.round(110 - avgLen * 10)));
     return score; // 0-100 (higher easier)
-  }, [text]);
-
-  // Passive ratio not shown separately after UI changes
+  }, [text, analysisData]);
 
   // Skills present/missing from REAL AI data
-  const presentSkills = Array.isArray(analysisData?.keywordAnalysis?.presentKeywords) 
-    ? analysisData.keywordAnalysis.presentKeywords 
-    : [];
+  const presentSkills = Array.isArray(analysisData?.atsAnalysis?.presentKeywords)
+    ? analysisData.atsAnalysis.presentKeywords
+    : (Array.isArray(analysisData?.keywordAnalysis?.presentKeywords)
+      ? analysisData.keywordAnalysis.presentKeywords
+      : (analysisData.skillKeywordGaps?.skills_present || []));
+
   const missingKeywords = Array.isArray(analysisData?.keywordAnalysis?.missingKeywords)
     ? analysisData.keywordAnalysis.missingKeywords
-    : [];
+    : (analysisData.skillKeywordGaps?.critical_missing || []);
 
   // Grammar/Spelling issues from REAL AI data
   const grammarSpelling = Array.isArray(analysisData?.grammarSpelling)
     ? analysisData.grammarSpelling
     : [];
+
   const mistakeIssues = grammarSpelling.map((issue, idx) => ({
     type: 'Error',
     text: issue,
@@ -147,11 +190,11 @@ const StoryGeneration = ({ resumeData, onSaveToHistory, onBack }) => {
     location: 'Resume'
   }));
 
-  // Format score from REAL AI ATS score
-  const formatScore = displayData?.atsScore?.score || 0;
+  // Format score from REAL AI (separate from ATS score)
+  const formatScore = analysisData?.formatScore?.score || (sectionScores.formatting ? sectionScores.formatting * 10 : 0) || displayData?.atsScore?.score || 0;
 
   // Red flags from REAL AI data
-  const redFlags = grammarSpelling.length > 0 ? grammarSpelling : ['No critical issues detected'];
+  const redFlags = redFlagsList.length > 0 ? redFlagsList : (grammarSpelling.length > 0 ? grammarSpelling : ['No critical issues detected']);
 
   // Bullet rewriter (local)
   const [weakBullet, setWeakBullet] = useState('Worked on frontend');
@@ -161,10 +204,21 @@ const StoryGeneration = ({ resumeData, onSaveToHistory, onBack }) => {
     'Built reusable UI patterns and documentation, accelerating feature delivery by 20%.'
   ]), []);
 
-  // Achievement suggestions from REAL AI quick fixes
-  const achievements = Array.isArray(analysisData?.growthAreas)
-    ? analysisData.growthAreas
-    : (Array.isArray(analysisData?.strengths) ? analysisData.strengths : ['No recommendations available']);
+  // Quick Fixes - Prioritize old data format if available, else fallback to action plan
+  const quickFixesList = Array.isArray(analysisData?.quickFixes) && analysisData.quickFixes.length > 0
+    ? analysisData.quickFixes
+    : [
+      ...(actionPlan.high || []),
+      ...(actionPlan.medium || []),
+      ...(actionPlan.low || [])
+    ];
+
+  if (quickFixesList.length === 0 && Array.isArray(analysisData?.growthAreas)) {
+    quickFixesList.push(...analysisData.growthAreas);
+  }
+
+  // Alias for report generation
+  const achievements = quickFixesList;
 
   // ATS Compatibility Checker (heuristics)
   const atsCompatibility = useMemo(() => {
@@ -174,7 +228,7 @@ const StoryGeneration = ({ resumeData, onSaveToHistory, onBack }) => {
     const tablesDetected = /\||\t/.test(text);
     const iconsDetected = /(icon|svg|png|jpg|jpeg)/i.test(text);
     const shortLines = lines.filter(l => l.trim().length > 0 && l.trim().length <= 25).length;
-    const columnsSuspected = lines.length > 120 && shortLines/Math.max(1, lines.length) > 0.55; // crude signal
+    const columnsSuspected = lines.length > 120 && shortLines / Math.max(1, lines.length) > 0.55; // crude signal
     const headerFooter = /(header|footer|page\s*\d)/i.test(lower);
     const lowContrast = false; // cannot detect from text
     const fancyFonts = false;  // cannot detect from text
@@ -193,7 +247,24 @@ const StoryGeneration = ({ resumeData, onSaveToHistory, onBack }) => {
   // Combined ATS score (base from AI if available, adjusted by compatibility warnings)
   const atsCombined = useMemo(() => {
     const hasFinite = Number.isFinite(displayData?.atsScore?.score);
-    const base = isAIUnavailable ? 75 : (hasFinite ? displayData.atsScore.score : 75);
+    // NEW: Check for overallScore (new format) or atsScore.score (old format)
+    const rawScore = displayData?.overallScore ?? (hasFinite ? displayData.atsScore.score : 75);
+    const base = isAIUnavailable ? 75 : rawScore;
+
+    // NEW: Extract Keyword Match Score with Fallback Calculation
+    let kScore = displayData?.atsAnalysis?.keywordMatchScore;
+    if (typeof kScore !== 'number') {
+      // Fallback: Calculate from arrays if explicit score is missing
+      // Use the already computed presentSkills and missingKeywords arrays which handle data location fallbacks
+      const present = presentSkills.length || 0;
+      const missing = missingKeywords.length || 0;
+      const total = present + missing;
+      // If we have data, calculate percentage. If no data, default to 0.
+      kScore = total > 0 ? Math.round((present / total) * 100) : 0;
+    }
+    const keywordScore = kScore;
+    const keywordLevel = keywordScore >= 85 ? 'Excellent' : keywordScore >= 70 ? 'Good' : keywordScore >= 50 ? 'Fair' : 'Poor';
+
     let penalty = 0;
     // Don't punish 'not scannable' when we have no extracted text (unknown state)
     if (wordCount > 0 && !atsCompatibility.scannable) penalty += 30;
@@ -217,10 +288,10 @@ const StoryGeneration = ({ resumeData, onSaveToHistory, onBack }) => {
     const explanation = penalty === 0
       ? 'No ATS layout risks detected.'
       : `Base ${base} adjusted by ${risks} ATS layout risk(s) (−${penalty}).`;
-    return { score, level, explanation };
-  }, [displayData, atsCompatibility, isAIUnavailable, wordCount]);
+    return { score, level, explanation, keywordScore, keywordLevel };
+  }, [displayData, atsCompatibility, isAIUnavailable, wordCount, presentSkills, missingKeywords]);
 
-  const chipClass = (ok, warn=false) => ok ? 'chip good' : (warn ? 'chip warn' : 'chip bad');
+  const chipClass = (ok, warn = false) => ok ? 'chip good' : (warn ? 'chip warn' : 'chip bad');
 
   const atsIssuesCount = useMemo(() => {
     let c = 0;
@@ -234,13 +305,74 @@ const StoryGeneration = ({ resumeData, onSaveToHistory, onBack }) => {
     return c;
   }, [atsCompatibility]);
 
-  const handleDownload = async () => {
+  // Score Animation Logic
+  const [animatedAudit, setAnimatedAudit] = useState(0);
+  const [animatedKeyword, setAnimatedKeyword] = useState(0);
+
+  useEffect(() => {
+    const animate = (target, setter) => {
+      const duration = 2000; // 2 seconds
+      const startTime = performance.now();
+
+      const step = (currentTime) => {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        // Ease out quart
+        const ease = 1 - Math.pow(1 - progress, 4);
+
+        const current = Math.floor(ease * target);
+        setter(current);
+
+        if (progress < 1) {
+          requestAnimationFrame(step);
+        }
+      };
+      requestAnimationFrame(step);
+    };
+
+    animate(atsCombined.score, setAnimatedAudit);
+    animate(atsCombined.keywordScore, setAnimatedKeyword);
+
+  }, [atsCombined.score, atsCombined.keywordScore]);
+
+  const getLevel = (s) => s >= 85 ? 'Excellent' : s >= 70 ? 'Good' : s >= 50 ? 'Fair' : 'Poor';
+
+  // Modal State
+  const [showDownloadModal, setShowDownloadModal] = useState(false);
+
+  const handleDownloadClick = () => {
+    setShowDownloadModal(true);
+  };
+
+  const confirmDownload = () => {
     try {
-      generateCompleteReport(analysisData, jobRole, resumeName, achievements);
-      console.log('✅ Complete analysis report downloaded successfully');
+      // consolidate all computed data to ensure report matches UI exactly
+      const completeReportData = {
+        ...analysisData,
+        atsScore: {
+          score: overallScore,
+          level: atsScoreLevel,
+          breakdown: sectionScores, // Use the locally computed section scores
+          explanation: displayData?.atsScore?.explanation
+        },
+        recruiterInsights: recruiterImpression, // Use processed impression
+        mistakes: mistakeIssues,
+        atsImprovement: {
+          ...analysisData.atsImprovement,
+          missingKeywords: missingKeywords
+        },
+        // Explicitly pass JD Score
+        jdScore: atsCombined.keywordScore,
+        jdLevel: atsCombined.keywordLevel
+      };
+
+      console.log("Downloading Professional Report with:", completeReportData);
+      generateCompleteReport(completeReportData, jobRole, resumeName, achievements);
+      setShowDownloadModal(false);
     } catch (error) {
       console.error('❌ Error generating report:', error);
       alert('Failed to download report. Please try again.');
+      setShowDownloadModal(false);
     }
   };
 
@@ -251,370 +383,577 @@ const StoryGeneration = ({ resumeData, onSaveToHistory, onBack }) => {
     console.log('Start new analysis');
   };
 
+  const [showResume, setShowResume] = useState(false);
+  const [iframeLoaded, setIframeLoaded] = useState(false);
+
+  // Smooth Transition Hack: Delay iframe load until animation finishes
+  useEffect(() => {
+    if (showResume) {
+      setIframeLoaded(false);
+      const timer = setTimeout(() => setIframeLoaded(true), 450); // Wait for CSS slide-up
+      return () => clearTimeout(timer);
+    }
+  }, [showResume]);
+
   // Refs for quick navigation
   const atsRef = useRef(null);
-  const mistakesRef = useRef(null);
-  const grammarRef = useRef(null);
+  const grammarCardRef = useRef(null);
   const fixesRef = useRef(null);
   const skillsRef = useRef(null);
+  const jdMatchRef = useRef(null);
+  const redFlagsRef = useRef(null);
+  const sectionScoresRef = useRef(null);
 
-  const scrollTo = (ref, highlight = true) => {
-    if (ref?.current) {
-      ref.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  const [activeSection, setActiveSection] = useState('scores');
+
+  // Scroll Spy Logic with IntersectionObserver
+  useEffect(() => {
+    // Lock variable to prevent observer from fighting manual clicks
+    const sections = [
+      { ref: sectionScoresRef, id: 'scores' },
+      { ref: grammarCardRef, id: 'grammar' },
+      { ref: fixesRef, id: 'fixes' },
+      { ref: skillsRef, id: 'skills' },
+      { ref: redFlagsRef, id: 'redflags' }
+    ];
+
+    const observerOptions = {
+      root: null,
+      rootMargin: '-45% 0px -45% 0px', // Precise "Center Line" tracking (only the middle 10% triggers)
+      threshold: 0
+    };
+
+    const observerCallback = (entries) => {
+      // If we are currently manual scrolling, ignore observer updates
+      if (window.isManualScrolling) return;
+
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          const matchingSection = sections.find(s => s.ref.current === entry.target);
+          if (matchingSection) {
+            setActiveSection(matchingSection.id);
+          }
+        }
+      });
+    };
+
+    const observer = new IntersectionObserver(observerCallback, observerOptions);
+
+    sections.forEach(({ ref }) => {
+      if (ref.current) observer.observe(ref.current);
+    });
+
+    return () => observer.disconnect();
+  }, []);
+
+  const scrollTo = (ref, id, highlight = true) => {
+    // 1. Set active immediately
+    setActiveSection(id);
+
+    // 2. Set manual scroll lock to prevent observer override
+    window.isManualScrolling = true;
+
+    console.log(`Scrolling to: ${id}`, ref); // DEBUG LOG
+
+    if (id === 'scores') {
+      // Special case: First item should scroll to absolute top of page
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else if (ref?.current) {
+      // scrollIntoView with 'start' is more reliable than 'center' for navigation targets
+      const yOffset = -100; // Account for fixed header
+      const y = ref.current.getBoundingClientRect().top + window.pageYOffset + yOffset;
+
+      window.scrollTo({ top: y, behavior: 'smooth' });
+
       if (highlight) {
-        // Remove any existing highlight first
         ref.current.classList.remove('flash-highlight');
-        // Force reflow to trigger animation restart
         void ref.current.offsetWidth;
         ref.current.classList.add('flash-highlight');
         setTimeout(() => ref.current && ref.current.classList.remove('flash-highlight'), 1500);
       }
     }
+
+    // 3. Release lock after scroll settles (approx 1000ms)
+    setTimeout(() => {
+      window.isManualScrolling = false;
+    }, 1000);
   };
 
   return (
     <div className="analysis-page">
       {/* Header with job info */}
       <header className="page-header">
-        <div className="header-content">
-          {/* <h5 className="page-title gradient-text">Smart Resume INSIGHTS</h5> */}
-          
-          <div className="job-info pill-row">
-            <br/>
-           
-            <span className="pill primary">{jobRole}</span>
-            <span className="pill muted">{resumeName}</span>
-            
+        <div className="job-info">
+          <span className="pill primary">{jobRole}</span>
+          <div className="resume-name-badge">
+            <MdDescription className="resume-icon" />
+            <span className="resume-text">{resumeName}</span>
           </div>
+        </div>
+
+        <div className="header-actions">
+          <button
+            className={`btn btn-secondary ${showResume ? 'active' : ''}`}
+            onClick={() => fileUrl ? setShowResume(!showResume) : alert('Resume preview is only available for the current session.')}
+            title={fileUrl ? (showResume ? "Hide resume preview" : "Show resume side-by-side") : "Preview not available"}
+            style={!fileUrl ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+          >
+            {showResume ? <MdClose style={{ marginRight: '6px' }} /> : <MdDescription style={{ marginRight: '6px' }} />}
+            {showResume ? "Hide Resume" : "View Resume"}
+          </button>
+          <button className="btn btn-secondary" onClick={handleNewAnalysis}>
+            <MdRefresh style={{ marginRight: '6px' }} /> Analyze New
+          </button>
         </div>
       </header>
 
-      {/* Removed legacy horizontal quick navigation chips for cleaner layout (side nav retained) */}
-
-      {/* AI Service Status Banner */}
-      {/* AI service banner intentionally removed as requested */}
-
-      {/* Single Main Container within a sticky holder to preserve top gap */}
-      <div className="container-sticky">
-        <div className="main-container">
-          <div className="page-content">
-          {/* Page Shell: left overview/nav | center content | right quick fixes */}
-          <div className="page-shell">
-            <aside className="left-rail">
-              <div className="rail-card">
-                <div className="rail-title">Overview</div>
-                <div className="rail-kpis">
-                  <div className="rail-kpi" style={{background: atsCombined.score >= 75 ? 'rgba(34,197,94,0.1)' : atsCombined.score >= 50 ? 'rgba(251,191,36,0.1)' : 'rgba(239,68,68,0.1)', border: `1px solid ${atsCombined.score >= 75 ? 'rgba(34,197,94,0.25)' : atsCombined.score >= 50 ? 'rgba(251,191,36,0.25)' : 'rgba(239,68,68,0.25)'}`}}>
-                    <span className="rail-kpi-label">ATS Score</span>
-                    <span className="rail-kpi-value" style={{color: atsCombined.score >= 75 ? '#22c55e' : atsCombined.score >= 50 ? '#fbbf24' : '#ef4444'}}>{atsCombined.score}</span>
-                  </div>
-                  <div className="rail-kpi" style={{background: atsIssuesCount === 0 ? 'rgba(34,197,94,0.1)' : atsIssuesCount <= 2 ? 'rgba(251,191,36,0.1)' : 'rgba(239,68,68,0.1)', border: `1px solid ${atsIssuesCount === 0 ? 'rgba(34,197,94,0.25)' : atsIssuesCount <= 2 ? 'rgba(251,191,36,0.25)' : 'rgba(239,68,68,0.25)'}`}}>
-                    <span className="rail-kpi-label">Issues Found</span>
-                    <span className="rail-kpi-value" style={{color: atsIssuesCount === 0 ? '#22c55e' : atsIssuesCount <= 2 ? '#fbbf24' : '#ef4444'}}>{atsIssuesCount}</span>
-                  </div>
-                  <div className="rail-kpi" style={{background: readability === 'Easy' ? 'rgba(34,197,94,0.1)' : readability === 'Moderate' ? 'rgba(251,191,36,0.1)' : 'rgba(239,68,68,0.1)', border: `1px solid ${readability === 'Easy' ? 'rgba(34,197,94,0.25)' : readability === 'Moderate' ? 'rgba(251,191,36,0.25)' : 'rgba(239,68,68,0.25)'}`}}>
-                    <span className="rail-kpi-label">Readability</span>
-                    <span className="rail-kpi-value" style={{color: readability === 'Easy' ? '#22c55e' : readability === 'Moderate' ? '#fbbf24' : '#f59e0b'}}>{readability}</span>
-                  </div>
-                </div>
-                <div className="progress-container" style={{marginTop:8}}>
-                  <div className="progress-bar" style={{ width: `${atsCombined.score}%`, background: atsCombined.score >= 75 ? 'linear-gradient(90deg, #22c55e, #10b981)' : atsCombined.score >= 50 ? 'linear-gradient(90deg, #fbbf24, #f59e0b)' : 'linear-gradient(90deg, #ef4444, #dc2626)' }}></div>
-                </div>
-              </div>
-              <nav className="side-nav">
-                <button className="side-link" onClick={()=>scrollTo(atsRef)}><MdSecurity /> ATS Score</button>
-                <button className="side-link" onClick={()=>scrollTo(mistakesRef)}><MdSpellcheck /> Grammar & Spelling</button>
-                <button className="side-link" onClick={()=>scrollTo(grammarRef)}><MdLightbulb /> ATS Improvement</button>
-                <button className="side-link" onClick={()=>scrollTo(fixesRef)}><MdBuild /> Quick Fixes</button>
-                <button className="side-link" onClick={()=>scrollTo(skillsRef)}><MdDescription /> Skill Gaps</button>
-                <div className="coming-soon-section">
-                  <div className="coming-soon-label">Coming Soon</div>
-                  <button className="side-link coming-soon-link"><MdFormatListBulleted /> Job Description Match</button>
-                  <button className="side-link coming-soon-link"><MdAutoAwesome /> Bullet Point Analyzer</button>
-                </div>
-              </nav>
-            </aside>
-
-            <main className="content-rail">
-              <div className="main-analysis">
-            {/* 1) ATS Score + Full ATS Compatibility Check */}
-            <div ref={atsRef} id="ats" className="analysis-card ats-card">
-              <h2><MdSecurity /> ATS SCORE & COMPATIBILITY</h2>
-              <div className="kpi-grid" style={{marginBottom:12}}>
-                <div className="kpi-card">
-                  <div className="kpi-title">ATS Score</div>
-                  <div className="kpi-value">{atsCombined.score}/100 <span style={{fontSize:12, opacity:0.7}}>({atsCombined.level})</span></div>
-                  <div className="progress-container" style={{marginTop:8}}>
-                    <div className="progress-bar" style={{ width: `${atsCombined.score}%` }}></div>
-                  </div>
-                </div>
-                <div className="kpi-card">
-                  <div className="kpi-title">Readability Score</div>
-                  <div className="kpi-value">{readability}/100</div>
-                  <div className="progress-container" style={{marginTop:8}}>
-                    <div className="progress-bar" style={{ width: `${readability}%` }}></div>
-                  </div>
-                </div>
-                <div className="kpi-card">
-                  <div className="kpi-title">Format Score</div>
-                  <div className="kpi-value">{formatScore}/100</div>
-                  <div className="progress-container" style={{marginTop:8}}>
-                    <div className="progress-bar" style={{ width: `${formatScore}%` }}></div>
-                  </div>
-                </div>
-              </div>
-              <div className="chip-row" style={{marginBottom:12}}>
-                <span className={chipClass(atsCompatibility.scannable)}>Selectable Text</span>
-                <span className={chipClass(!atsCompatibility.tablesDetected, true)}>No Tables</span>
-                <span className={chipClass(!atsCompatibility.iconsDetected, true)}>No Icons</span>
-                <span className={chipClass(!atsCompatibility.columnsSuspected, true)}>Single Column</span>
-                <span className={chipClass(!atsCompatibility.headerFooter, true)}>No Header/Footer</span>
-                <span className={chipClass(!atsCompatibility.lowContrast, true)}>Readable Contrast</span>
-                <span className={chipClass(!atsCompatibility.fancyFonts, true)}>ATS-safe Fonts</span>
-              </div>
-              <div className="score-explanation" style={{marginBottom:6}}>{atsCombined.explanation}</div>
-              <div className="score-explanation" style={{opacity:0.85}}>Tip: Prefer simple single-column layout, avoid tables/icons, keep text selectable.</div>
+      {/* Page Shell: left overview/nav | center content | right quick fixes */}
+      <div className={`page-shell ${showResume ? 'split-view' : ''}`}>
+        <aside className="left-rail">
+          {/* PRIMARY SCORE: ATS AUDIT */}
+          <div className={`score-circle-container sidebar-version ${getLevel(animatedAudit).toLowerCase()}`}>
+            <div className="score-circle-wrapper">
+              <svg viewBox="0 0 36 36" className="circular-chart">
+                <path className="circle-bg"
+                  d="M18 2.0845
+                        a 15.9155 15.9155 0 0 1 0 31.831
+                        a 15.9155 15.9155 0 0 1 0 -31.831"
+                />
+                <path className="circle"
+                  strokeDasharray={`${animatedAudit}, 100`}
+                  d="M18 2.0845
+                        a 15.9155 15.9155 0 0 1 0 31.831
+                        a 15.9155 15.9155 0 0 1 0 -31.831"
+                />
+                <text x="18" y="20.35" className="percentage">{animatedAudit}</text>
+              </svg>
             </div>
+            <div className="score-text-content">
+              <div className="score-level">{getLevel(animatedAudit).toUpperCase()}</div>
+              <div className="score-badge">
+                ATS AUDIT SCORE
+                <div className="tooltip-container" style={{ marginLeft: '6px', display: 'inline-flex', alignItems: 'center' }}>
+                  <MdHelpOutline className="info-icon-fixed" />
+                  <span className="tooltip-text">Strict evaluation of your resume's quality, formatting, and impact based on industry standards. (0-100)</span>
+                </div>
+              </div>
+            </div>
+          </div>
 
-            {/* 2) Grammar + Spelling + Weak Language Detector */}
-            <div ref={mistakesRef} id="grammar" className="analysis-card">
-              <h2><MdSpellcheck /> GRAMMAR, SPELLING & LANGUAGE</h2>
-              <div className="score-explanation" style={{marginBottom:12}}>Issues found in your resume:</div>
-              {mistakeIssues.length > 0 ? (
-                <>
-                  <ul className="growth-items">
-                    {mistakeIssues.slice(0, 5).map((m, i) => (
-                      <li key={i}><strong>{m.type}:</strong> {m.text}</li>
-                    ))}
-                  </ul>
-                  <div className="score-explanation" style={{marginTop:12, fontSize:'0.9rem'}}>💡 Tip: Weak verbs like "helped" and "worked" hurt your resume. Use strong action verbs instead.</div>
-                </>
+          <nav className="nav-menu">
+            <button className={`nav-btn ${activeSection === 'scores' ? 'active' : ''}`} onClick={() => scrollTo(sectionScoresRef, 'scores')}><MdFormatListBulleted /> Score Breakdown</button>
+            <button className={`nav-btn ${activeSection === 'grammar' ? 'active' : ''}`} onClick={() => scrollTo(grammarCardRef, 'grammar')}><MdSpellcheck /> Grammar & Spelling</button>
+            <button className={`nav-btn ${activeSection === 'fixes' ? 'active' : ''}`} onClick={() => scrollTo(fixesRef, 'fixes')}><MdBuild /> Quick Fixes</button>
+            <button className={`nav-btn ${activeSection === 'skills' ? 'active' : ''}`} onClick={() => scrollTo(skillsRef, 'skills')}><MdDescription /> Skill Gaps</button>
+            <button className={`nav-btn ${activeSection === 'redflags' ? 'active' : ''}`} onClick={() => scrollTo(redFlagsRef, 'redflags')}><MdLightbulb /> Recruiter Impression</button>
+            {/* Main Action - Updated to open Modal */}
+            <button className="btn-download" onClick={handleDownloadClick}>
+              <MdDownload size={20} />
+              Download Report
+            </button>
+
+            <div className="sidebar-divider"></div>
+          </nav>
+        </aside>
+
+        <main className="content-rail">
+          <div className="main-analysis">
+
+            {/* 1) SECTION SCORES (Simplified Grid) */}
+            <div ref={sectionScoresRef} id="scores" className="analysis-card" style={{ scrollMarginTop: '100px' }}>
+              <h2><MdFormatListBulleted /> SECTION-WISE BREAKDOWN</h2>
+              <div className="score-explanation" style={{ marginBottom: 16, color: 'var(--text-muted)' }}>Detailed scoring per section (0-10):</div>
+              {Object.keys(sectionScores).length > 0 ? (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '16px' }}>
+                  {Object.entries(sectionScores).map(([key, val]) => {
+                    const sectionTooltips = {
+                      education: "Evaluates degree relevance, institution prestige, and clarity.",
+                      skills: "Checks for hard/soft skill balance and keyword matching.",
+                      projects: "Assesses complexity, tech stack, and impact of projects.",
+                      experience: "Analyzes career progression, action verbs, and measurable results.",
+                      formatting: "Reviews layout consistency, fonts, and ATS readability."
+                    };
+
+                    return (
+                      <div key={key} style={{ background: '#ffffff', padding: '20px 16px', border: '1px solid transparent', borderRadius: '14px', textAlign: 'center', transition: 'all 0.3s ease', boxShadow: val >= 8 ? '0 8px 16px -4px rgba(16, 185, 129, 0.12)' : val >= 5 ? '0 8px 16px -4px rgba(245, 158, 11, 0.12)' : '0 8px 16px -4px rgba(239, 68, 68, 0.12)' }}>
+                        <div style={{ textTransform: 'uppercase', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '10px', fontWeight: '800', letterSpacing: '0.05em' }}>{key}</div>
+                        <div style={{ fontSize: '2rem', fontWeight: '900', color: val >= 8 ? 'var(--status-good)' : val >= 5 ? 'var(--status-fair)' : 'var(--status-poor)', lineHeight: 1 }}>
+                          {val}<span style={{ fontSize: '1rem', opacity: 0.6 }}>/10</span>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
               ) : (
-                <div style={{padding:'16px', background:'rgba(34,197,94,0.1)', border:'1px solid rgba(34,197,94,0.3)', borderRadius:'10px', textAlign:'center'}}>
-                  <div style={{fontSize:'2rem', marginBottom:'8px'}}>✓</div>
-                  <div style={{color:'#22c55e', fontSize:'1rem', fontWeight:'600', marginBottom:'4px'}}>No Grammar or Spelling Errors Found!</div>
-                  <div style={{color:'#86efac', fontSize:'0.85rem'}}>Your resume is grammatically clean and ready to go.</div>
+                <div style={{ textAlign: 'center', padding: '20px', color: 'var(--text-dim)', fontStyle: 'italic' }}>
+                  No section scores available. Please re-analyze the resume.
                 </div>
               )}
             </div>
 
-            {/* 3) ATS Score Improvement Guide - Coming Soon */}
-            <div ref={grammarRef} id="ats-improvement" className="analysis-card">
-              <h2><MdLightbulb /> BOOST YOUR ATS SCORE</h2>
-              
-              {/* Coming Soon Message */}
-              <div style={{background:'linear-gradient(135deg, rgba(30,41,59,0.6), rgba(30,41,59,0.4))', border:'2px solid rgba(129,140,248,0.25)', borderRadius:'16px', padding:'40px 32px', textAlign:'center', boxShadow:'0 8px 24px rgba(0,0,0,0.25)'}}>
-                <MdRocket style={{fontSize:'3rem', color:'#818cf8', marginBottom:'16px'}} />
-                <div style={{fontSize:'1.5rem', fontWeight:'700', color:'#818cf8', marginBottom:'12px'}}>Coming Soon</div>
-                <div style={{fontSize:'0.95rem', color:'#94a3b8', lineHeight:'1.6'}}>Advanced ATS improvement features with personalized recommendations<br/>and step-by-step guidance will be available soon.</div>
-              </div>
-              
-              {analysisData?.atsImprovement?.estimatedImprovement && false ? (
-                <>
-                  <div style={{background:'linear-gradient(135deg, rgba(30,41,59,0.6), rgba(30,41,59,0.4))', border:'2px solid rgba(129,140,248,0.25)', borderRadius:'16px', padding:'28px 32px', marginBottom:'24px', boxShadow:'0 8px 24px rgba(0,0,0,0.25)', display:'none'}}>
-                    <div style={{display:'flex', alignItems:'center', justifyContent:'space-around', gap:'24px'}}>
-                      <div style={{textAlign:'center', flex:'1'}}>
-                        <div style={{fontSize:'0.7rem', color:'#94a3b8', marginBottom:'8px', fontWeight:'600', textTransform:'uppercase', letterSpacing:'0.5px'}}>Current Score</div>
-                        <div style={{fontSize:'3rem', fontWeight:'900', color:'#f59e0b', lineHeight:'1', textShadow:'0 2px 8px rgba(245,158,11,0.3)'}}>
-                          {analysisData.atsImprovement.estimatedImprovement.currentScore}<span style={{fontSize:'1.8rem', color:'#fbbf24'}}>%</span>
-                        </div>
-                      </div>
-                      <div style={{fontSize:'2.5rem', color:'#818cf8', fontWeight:'700', padding:'0 16px'}}>→</div>
-                      <div style={{textAlign:'center', flex:'1'}}>
-                        <div style={{fontSize:'0.7rem', color:'#94a3b8', marginBottom:'8px', fontWeight:'600', textTransform:'uppercase', letterSpacing:'0.5px'}}>Target Score</div>
-                        <div style={{fontSize:'3rem', fontWeight:'900', color:'#22c55e', lineHeight:'1', textShadow:'0 2px 8px rgba(34,197,94,0.3)'}}>
-                          {analysisData.atsImprovement.estimatedImprovement.potentialScore}<span style={{fontSize:'1.8rem', color:'#4ade80'}}>%</span>
-                        </div>
-                      </div>
-                      <div style={{background:'linear-gradient(135deg, rgba(34,197,94,0.2), rgba(34,197,94,0.1))', border:'2px solid rgba(34,197,94,0.4)', borderRadius:'12px', padding:'16px 24px', flex:'0.8', textAlign:'center', boxShadow:'0 4px 12px rgba(34,197,94,0.15)'}}>
-                        <div style={{fontSize:'0.7rem', color:'#86efac', marginBottom:'6px', fontWeight:'700', textTransform:'uppercase', letterSpacing:'0.8px'}}>Boost</div>
-                        <div style={{fontSize:'2rem', fontWeight:'900', color:'#22c55e', textShadow:'0 2px 6px rgba(34,197,94,0.25)'}}>+{analysisData.atsImprovement.estimatedImprovement.potentialScore - analysisData.atsImprovement.estimatedImprovement.currentScore}<span style={{fontSize:'1.3rem'}}>%</span></div>
-                      </div>
+            {/* 2) GRAMMAR & SPELLING (Clean List) */}
+            <div ref={grammarCardRef} id="grammar" className="analysis-card" style={{ scrollMarginTop: '100px' }}>
+              <h2><MdSpellcheck /> GRAMMAR & SPELLING</h2>
+              <div className="score-explanation" style={{ marginBottom: 12, color: 'var(--text-muted)' }}>Critical errors that hurt your credibility:</div>
+              {mistakeIssues.length > 0 ? (
+                <ul className="growth-items">
+                  {mistakeIssues.map((issue, i) => (
+                    <li key={i} style={{
+                      color: 'var(--text-main)',
+                      borderLeft: '4px solid var(--status-poor)',
+                      background: '#ffffff',
+                      marginBottom: '12px',
+                      padding: '16px 20px',
+                      borderRadius: '0 12px 12px 0',
+                      border: '1px solid transparent',
+                      borderLeftWidth: '4px',
+                      boxShadow: '0 4px 12px -2px rgba(239, 68, 68, 0.08)',
+                      lineHeight: '1.6'
+                    }}>
+                      <strong style={{ color: '#ef4444', fontWeight: '600', fontSize: '0.95rem', marginRight: '6px' }}>Correction Needed:</strong> {issue.text}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '30px', background: 'var(--bg-panel-hover)', borderRadius: '12px', border: '1px solid var(--border-subtle)', color: 'var(--text-muted)' }}>
+                  <div>No critical grammar issues detected.</div>
+                </div>
+              )}
+            </div>
+
+            {/* 3) QUICK FIXES (Replaces Action Plan) */}
+            <div ref={fixesRef} id="fixes" className="analysis-card" style={{ scrollMarginTop: '100px' }}>
+              <h2><MdBuild /> QUICK FIXES</h2>
+              <div className="score-explanation" style={{ marginBottom: 12 }}>Immediate improvements you can make:</div>
+
+              {quickFixesList.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '20px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                  No quick fixes generated. Please re-analyze the resume.
+                </div>
+              ) : (
+                <ul className="strength-items">
+                  {quickFixesList.map((fix, idx) => {
+                    // Helper to highlight keywords like "IMMEDIATE REMOVAL", "CRITICAL", etc.
+                    const highlightKeywords = (text) => {
+                      const keywords = ['IMMEDIATE REMOVAL', 'IMMEDIATELY', 'CRITICAL', 'RED FLAG', 'WARNING', 'REMOVE', 'DELETE', 'ADD', 'INCLUDE'];
+                      const regex = new RegExp(`\\b(${keywords.join('|')})\\b`, 'gi');
+
+                      const parts = text.split(regex);
+                      return parts.map((part, i) => {
+                        if (keywords.some(k => k.toLowerCase() === part.toLowerCase())) {
+                          return <span key={i} style={{ color: '#fbbf24', fontWeight: '700' }}>{part}</span>;
+                        }
+                        return part;
+                      });
+                    };
+
+                    // Ensure we have a category. If missing, try to infer or default to 'ACTION'.
+                    let displayFix = fix;
+                    let colonIndex = fix.indexOf(':');
+
+                    // If no colon found, or it's too far into the sentence (likely not a category), force a category
+                    if (colonIndex === -1 || colonIndex > 25) {
+                      const upperFix = fix.toUpperCase();
+                      let inferredCategory = 'ACTION';
+
+                      // Smart inference based on content keywords
+                      if (upperFix.includes('EDUCATION') || upperFix.includes('COLLEGE') || upperFix.includes('DEGREE') || upperFix.includes('GPA')) {
+                        inferredCategory = 'EDUCATION';
+                      } else if (upperFix.includes('SKILL') || upperFix.includes('TECHNOLOG') || upperFix.includes('LANGUAGE') || upperFix.includes('TOOL') || upperFix.includes('GIT') || upperFix.includes('SQL')) {
+                        inferredCategory = 'SKILLS';
+                      } else if (upperFix.includes('PROJECT')) {
+                        inferredCategory = 'PROJECTS';
+                      } else if (upperFix.includes('SUMMARY') || upperFix.includes('OBJECTIVE') || upperFix.includes('PROFILE')) {
+                        inferredCategory = 'SUMMARY';
+                      } else if (upperFix.includes('EXPERIENCE') || upperFix.includes('WORK') || upperFix.includes('INTERNSHIP') || upperFix.includes('JOB')) {
+                        inferredCategory = 'EXPERIENCE';
+                      } else if (upperFix.includes('FORMAT') || upperFix.includes('LAYOUT') || upperFix.includes('FONT')) {
+                        inferredCategory = 'FORMATTING';
+                      } else {
+                        // Fallback to verb check if no context found
+                        const firstWord = fix.split(' ')[0].toUpperCase();
+                        if (['DELETE', 'REMOVE', 'ADD', 'FIX', 'CORRECT', 'CLARIFY', 'QUANTIFY'].includes(firstWord)) {
+                          inferredCategory = firstWord;
+                        }
+                      }
+
+                      displayFix = `${inferredCategory}: ${fix}`;
+                      colonIndex = displayFix.indexOf(':');
+                    }
+
+                    const category = displayFix.substring(0, colonIndex);
+                    const content = displayFix.substring(colonIndex + 1);
+
+                    return (
+                      <li key={idx} style={{ borderLeft: '4px solid var(--accent-primary)', borderRadius: '0 8px 8px 0', background: '#ffffff', padding: '12px 16px', marginBottom: '8px', border: '1px solid transparent', borderLeftWidth: '4px', boxShadow: '0 4px 12px -2px rgba(16, 185, 129, 0.08)' }}>
+                        <strong style={{ color: 'var(--accent-primary)', marginRight: '8px' }}>→</strong>
+                        <span>
+                          <strong style={{ color: 'var(--accent-primary)', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em', marginRight: '6px' }}>
+                            {category}:
+                          </strong>
+                          {content}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+
+            {/* 4) Skill & Keyword Gap Analysis */}
+            <div ref={skillsRef} id="skills" className="analysis-card" style={{ scrollMarginTop: '100px' }}>
+              <h2><MdDescription /> SKILL & KEYWORD GAPS</h2>
+              <div className="score-explanation" style={{ marginBottom: 12, color: 'var(--text-muted)' }}>Boost your visibility with these key terms.</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 20, marginBottom: 12 }}>
+                <div style={{ background: '#ffffff', borderRadius: '12px', padding: '16px', border: '1px solid transparent', boxShadow: '0 8px 16px -4px rgba(16, 185, 129, 0.12)' }}>
+                  <div style={{ fontSize: '0.85rem', fontWeight: '700', color: 'var(--accent-primary)', marginBottom: '8px', textTransform: 'uppercase' }}>✓ Strong Skills</div>
+                  <div style={{ fontSize: '0.95rem', color: 'var(--text-main)', lineHeight: '1.5' }}>{presentSkills.length > 0 ? presentSkills.join(', ') : 'No skills detected'}</div>
+                </div>
+                <div style={{ background: '#ffffff', borderRadius: '12px', padding: '16px', textAlign: 'center', border: '1px solid transparent', boxShadow: '0 8px 16px -4px rgba(239, 68, 68, 0.12)' }}>
+                  <div style={{ fontSize: '0.85rem', fontWeight: '700', color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase' }}>→ Missing Skills</div>
+                  <div style={{ fontSize: '0.95rem', color: 'var(--text-main)', lineHeight: '1.5' }}>{missingKeywords.length > 0 ? missingKeywords.join(', ') : 'All key skills present'}</div>
+                  {missingKeywords.length > 0 && (
+                    <div style={{ marginTop: '10px', fontSize: '0.8rem', color: 'var(--text-dim)', fontStyle: 'italic' }}>
+                      * Frequently required for {jobRole} roles
                     </div>
-                    <div style={{fontSize:'0.85rem', color:'#e0e7ff', background:'rgba(99,102,241,0.15)', padding:'12px 18px', borderRadius:'8px', marginTop:'20px', textAlign:'center', border:'1px solid rgba(129,140,248,0.2)'}}>
-                      💡 Add the items below to increase your ATS score by <strong style={{color:'#22c55e', fontSize:'0.95rem'}}>{analysisData.atsImprovement.estimatedImprovement.potentialScore - analysisData.atsImprovement.estimatedImprovement.currentScore} points</strong>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* 5) ATS Score Improvement (Legacy/Recruiter View) */}
+            {/* 5) Recruiter Impression (was ATS Improvement) */}
+            <div ref={redFlagsRef} id="redflags" className="analysis-card" style={{ scrollMarginTop: '100px' }}>
+              <h2><MdLightbulb /> RECRUITER IMPRESSION</h2>
+              <div className="score-explanation" style={{ marginBottom: '24px', color: 'var(--text-muted)' }}>How a human recruiter sees your resume</div>
+
+              <div className="recruiter-grid">
+                <div className="recruiter-card">
+                  <div className="recruiter-label">
+                    Est. Skim Time
+                    <div className="tooltip-container" style={{ marginLeft: '6px', display: 'inline-flex', alignItems: 'center' }}>
+                      {/* Info icon with tooltip */}
+                      <MdHelpOutline className="info-icon-fixed" />
+                      <span className="tooltip-text">Estimated time a recruiter spends scanning your resume (Target: 6-10s).</span>
+                    </div>
+                  </div>
+                  <div className="recruiter-value">{recruiterImpression.skimTime || 'N/A'}</div>
+                </div>
+                <div className="recruiter-card">
+                  <div className="recruiter-label">First Impression</div>
+                  <div className={`recruiter-value status-${(recruiterImpression.verdict || 'neutral').toLowerCase()}`}>
+                    {recruiterImpression.verdict || 'Neutral'}
+                  </div>
+                </div>
+              </div>
+
+              {analysisData?.atsImprovement?.estimatedImprovement ? (
+                <>
+                  {/* Score Comparison - Clean & Professional */}
+                  <div className="score-comparison">
+                    <div className="score-block">
+                      <div className="score-label-small">Current</div>
+                      <div className="score-big">{analysisData.atsImprovement.estimatedImprovement.currentScore}</div>
+                    </div>
+
+                    <div className="score-divider">
+                      <div className="divider-icon"><MdRocket /></div>
+                    </div>
+
+                    <div className="score-block">
+                      <div className="score-label-small highlight">Potential</div>
+                      <div className="score-big highlight">{analysisData.atsImprovement.estimatedImprovement.potentialScore}</div>
                     </div>
                   </div>
 
-                  {/* Specific Line-by-Line Suggestions */}
-                  {analysisData?.atsImprovement?.quickFixes && analysisData.atsImprovement.quickFixes.length > 0 && (
-                    <div style={{marginBottom:'20px'}}>
-                      <div style={{fontSize:'1rem', fontWeight:'700', color:'#22c55e', marginBottom:'12px', display:'flex', alignItems:'center', gap:'8px'}}>
-                        <span>✨</span> Copy-Paste These Improvements
+                  {/* Improvement List - Clean Cards */}
+                  <div className="improvement-list">
+                    {missingKeywords.length > 0 && (
+                      <div className="improvement-card">
+                        <div className="improvement-icon"><MdDescription /></div>
+                        <div className="improvement-content">
+                          <div className="improvement-title">Missing Keywords</div>
+                          <div className="improvement-desc">
+                            Add <span className="text-highlight">{missingKeywords.slice(0, 2).join(', ')}</span> and {missingKeywords.length - 2} others to match the job description.
+                          </div>
+                        </div>
                       </div>
-                      <div style={{display:'flex', flexDirection:'column', gap:'12px'}}>
-                        {analysisData.atsImprovement.quickFixes.map((fix, idx) => {
-                          // Parse suggestion format: "Location: Change 'before' → 'after'"
-                          const parts = fix.split('→');
-                          const hasBefore = parts.length === 2;
-                          const beforePart = hasBefore ? parts[0].trim() : fix;
-                          const afterPart = hasBefore ? parts[1].trim() : '';
-                          
-                          return (
-                            <div key={idx} style={{background:'rgba(34,197,94,0.08)', border:'1.5px solid rgba(34,197,94,0.25)', borderRadius:'10px', padding:'14px'}}>
-                              <div style={{fontSize:'0.85rem', color:'#86efac', marginBottom:'8px', fontWeight:'600', display:'flex', alignItems:'center', gap:'6px'}}>
-                                <span style={{background:'rgba(34,197,94,0.2)', borderRadius:'4px', padding:'2px 8px', fontSize:'0.75rem'}}>#{idx+1}</span>
-                                {beforePart.split(':')[0]}
-                              </div>
-                              {hasBefore ? (
-                                <>
-                                  <div style={{background:'rgba(239,68,68,0.12)', border:'1px solid rgba(239,68,68,0.3)', borderRadius:'6px', padding:'10px', marginBottom:'8px'}}>
-                                    <div style={{fontSize:'0.7rem', color:'#fca5a5', marginBottom:'4px', fontWeight:'600'}}>❌ BEFORE (Remove this):</div>
-                                    <div style={{fontSize:'0.88rem', color:'#fecaca', fontFamily:'monospace', lineHeight:'1.5'}}>{parts[0].includes(':') ? parts[0].split(':').slice(1).join(':').trim().replace(/["']/g, '') : parts[0].trim()}</div>
-                                  </div>
-                                  <div style={{background:'rgba(34,197,94,0.12)', border:'1px solid rgba(34,197,94,0.3)', borderRadius:'6px', padding:'10px'}}>
-                                    <div style={{fontSize:'0.7rem', color:'#86efac', marginBottom:'4px', fontWeight:'600'}}>✅ AFTER (Add this line):</div>
-                                    <div style={{fontSize:'0.88rem', color:'#bbf7d0', fontFamily:'monospace', lineHeight:'1.5', fontWeight:'500'}}>{afterPart.replace(/["']/g, '')}</div>
-                                  </div>
-                                </>
-                              ) : (
-                                <div style={{background:'rgba(34,197,94,0.12)', border:'1px solid rgba(34,197,94,0.3)', borderRadius:'6px', padding:'10px'}}>
-                                  <div style={{fontSize:'0.7rem', color:'#86efac', marginBottom:'4px', fontWeight:'600'}}>✅ ADD THIS:</div>
-                                  <div style={{fontSize:'0.88rem', color:'#bbf7d0', fontFamily:'monospace', lineHeight:'1.5', fontWeight:'500'}}>{fix.includes(':') ? fix.split(':').slice(1).join(':').trim() : fix}</div>
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Missing Keywords - Add to Skills Section */}
-                  {analysisData?.atsImprovement?.missingKeywords && analysisData.atsImprovement.missingKeywords.length > 0 && (
-                    <div style={{marginBottom:'18px'}}>
-                      <div style={{fontSize:'0.95rem', fontWeight:'700', color:'#fbbf24', marginBottom:'10px', display:'flex', alignItems:'center', gap:'6px'}}>
-                        <span>🔑</span> Add These to Skills Section
-                      </div>
-                      <div style={{background:'rgba(251,191,36,0.08)', padding:'14px', borderRadius:'8px', border:'1px solid rgba(251,191,36,0.2)'}}>
-                        <div style={{fontSize:'0.75rem', color:'#fcd34d', marginBottom:'8px'}}>Copy-paste this line to your Skills section:</div>
-                        <div style={{background:'rgba(251,191,36,0.15)', borderRadius:'6px', padding:'10px', fontFamily:'monospace', fontSize:'0.9rem', color:'#fef3c7', fontWeight:'500'}}>
-                          {analysisData.atsImprovement.missingKeywords.join(' • ')}
+                    )}
+                    <div className="improvement-card">
+                      <div className="improvement-icon warn"><MdFormatListBulleted /></div>
+                      <div className="improvement-content">
+                        <div className="improvement-title">Formatting Issues</div>
+                        <div className="improvement-desc">
+                          Fix <span className="text-highlight">{analysisData?.formatIssues?.issues?.length || 3} layout problems</span> that might confuse ATS parsers.
                         </div>
                       </div>
                     </div>
-                  )}
+                  </div>
 
-                  {/* Format Warnings */}
-                  {analysisData?.atsImprovement?.formatWarnings && analysisData.atsImprovement.formatWarnings.length > 0 && (
-                    <div style={{marginBottom:'18px'}}>
-                      <div style={{fontSize:'0.95rem', fontWeight:'700', color:'#ef4444', marginBottom:'10px', display:'flex', alignItems:'center', gap:'6px'}}>
-                        <span>🚫</span> Fix These Format Issues
-                      </div>
-                      <div style={{background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.25)', borderRadius:'8px', padding:'12px'}}>
-                        <ul className="strength-items" style={{marginBottom:0}}>
-                          {analysisData.atsImprovement.formatWarnings.map((warning, idx) => (
-                            <li key={idx} style={{color:'#fca5a5', fontSize:'0.85rem', fontWeight:'500'}}>{warning}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    </div>
-                  )}
+                  {/* Premium Button - Professional Outline */}
+                  <button className="btn-premium">
+                    <MdLock className="premium-icon" />
+                    <span>Unlock Full Improvement Plan</span>
+                  </button>
                 </>
               ) : null}
             </div>
 
-            {/* 4) Actionable Fix Suggestions */}
-            <div ref={fixesRef} id="fixes" className="analysis-card">
-              <h2><MdBuild /> QUICK FIXES - DO THIS NOW</h2>
-              <div className="score-explanation" style={{marginBottom:12}}>Specific improvements you can make immediately:</div>
-              <ul className="strength-items" style={{marginBottom:12}}>
-                {achievements.map((fix, idx) => (
-                  <li key={idx}><strong>✓</strong> {fix}</li>
-                ))}
-              </ul>
-            </div>
 
-            {/* 6) Skill & Keyword Gap Analysis */}
-            <div ref={skillsRef} id="skills" className="analysis-card">
-              <h2><MdDescription /> SKILL & KEYWORD GAPS</h2>
-              <div className="score-explanation" style={{marginBottom:12}}>Compare your resume against job descriptions:</div>
-              <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(200px, 1fr))', gap:10, marginBottom:12}}>
-                <div style={{background:'rgba(34,197,94,0.1)', border:'1px solid rgba(34,197,94,0.3)', borderRadius:'10px', padding:'12px'}}>
-                  <div style={{fontSize:'0.85rem', fontWeight:'600', color:'#22c55e', marginBottom:'8px'}}>✓ Strong Skills</div>
-                  <div style={{fontSize:'0.9rem', color:'#cbd5e1'}}>{presentSkills.length > 0 ? presentSkills.join(', ') : 'No skills detected'}</div>
+          </div>
+
+        </main>
+
+        <aside className="right-rail">
+          {showResume ? (
+            <div className="resume-preview-container" key="resume">
+              {fileUrl ? (
+                iframeLoaded ? (
+                  <iframe
+                    src={`${fileUrl}#toolbar=0&navpanes=0&scrollbar=0`}
+                    className="resume-iframe"
+                    title="Resume Preview"
+                  />
+                ) : (
+                  <div className="resume-loading-skeleton">
+                    <MdDescription size={32} />
+                    <span style={{ fontSize: '0.9rem', fontWeight: 500 }}>Loading Document...</span>
+                  </div>
+                )
+              ) : (
+                <div className="empty-resume-state">
+                  <MdDescription size={48} color="#64748b" />
+                  <p>Resume preview unavailable</p>
                 </div>
-                <div style={{background:'rgba(245,158,11,0.1)', border:'1px solid rgba(245,158,11,0.3)', borderRadius:'10px', padding:'12px'}}>
-                  <div style={{fontSize:'0.85rem', fontWeight:'600', color:'#f59e0b', marginBottom:'8px'}}>⚠ Missing Hard Skills</div>
-                  <div style={{fontSize:'0.9rem', color:'#cbd5e1'}}>{missingKeywords.length > 0 ? missingKeywords.join(', ') : 'All key skills present'}</div>
+              )}
+            </div>
+          ) : (
+            <div className="animate-swap" key="scores">
+              {/* SECONDARY SCORE: JD MATCH SCORE */}
+              <div className={`score-circle-container sidebar-version ${getLevel(animatedKeyword).toLowerCase()}`} style={{
+                marginBottom: '20px',
+                background: '#ffffff',
+                border: '1px solid transparent',
+                borderRadius: '24px',
+                padding: '24px',
+                boxShadow: animatedKeyword >= 80 ? '0 8px 20px -4px rgba(16, 185, 129, 0.15)' : animatedKeyword >= 50 ? '0 8px 20px -4px rgba(245, 158, 11, 0.15)' : '0 8px 20px -4px rgba(239, 68, 68, 0.15)'
+              }}>
+                <div className="score-circle-wrapper">
+                  <svg viewBox="0 0 36 36" className="circular-chart">
+                    <path className="circle-bg"
+                      d="M18 2.0845
+                        a 15.9155 15.9155 0 0 1 0 31.831
+                        a 15.9155 15.9155 0 0 1 0 -31.831"
+                    />
+                    <path className="circle"
+                      strokeDasharray={`${animatedKeyword}, 100`}
+                      d="M18 2.0845
+                        a 15.9155 15.9155 0 0 1 0 31.831
+                        a 15.9155 15.9155 0 0 1 0 -31.831"
+                    />
+                    <text x="18" y="20.35" className="percentage">{animatedKeyword}</text>
+                  </svg>
+                </div>
+                <div className="score-text-content">
+                  <div className="score-level">{getLevel(animatedKeyword).toUpperCase()}</div>
+                  <div className="score-badge">
+                    JD MATCH SCORE
+                    <div className="tooltip-container" style={{ marginLeft: '6px', display: 'inline-flex', alignItems: 'center' }}>
+                      <MdHelpOutline className="info-icon-fixed" />
+                      <span className="tooltip-text">How well your resume matches the Job Description (JD) in terms of required skills and keywords. Higher score = better fit for the target role. (0-100)</span>
+                    </div>
+                  </div>
                 </div>
               </div>
-              <div className="score-explanation" style={{marginTop:12, fontSize:'0.9rem'}}>💡 Tip: Use "Coming Soon - Job Description Match" to automatically detect missing skills for any role.</div>
-            </div>
-              </div>
 
-              {/* Action Buttons */}
-              <div className="action-buttons">
-                <button className="btn btn-primary" onClick={handleDownload}>
-                  <MdDownload style={{marginRight: '6px'}} /> Download Report
-                </button>
-                <button className="btn btn-secondary" onClick={handleNewAnalysis}>
-                  <MdRefresh style={{marginRight: '6px'}} /> Analyze New Resume
-                </button>
-              </div>
-            </main>
-
-            <aside className="right-rail">
               <div className="rail-card">
-                <div className="rail-title">Priority Issues</div>
-                <div style={{display:'flex', flexDirection:'column', gap:'12px'}}>
+                <div className="rail-title" style={{ borderLeft: '3px solid var(--accent-primary)', paddingLeft: '12px' }}>Priority Issues</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   {mistakeIssues.length > 0 && (
-                    <div style={{background:'linear-gradient(135deg, rgba(239,68,68,0.12) 0%, rgba(239,68,68,0.04) 100%)', border:'1px solid rgba(239,68,68,0.2)', borderRadius:'12px', padding:'16px', cursor:'pointer', transition:'all 0.3s ease'}} onClick={()=>scrollTo(mistakesRef, true)}>
-                      <div style={{display:'flex', gap:'10px', alignItems:'flex-start'}}>
-                        <MdEditNote style={{color:'#fca5a5', fontSize:'1.4rem', flexShrink:0}} />
-                        <div>
-                          <div style={{fontSize:'0.7rem', fontWeight:'800', color:'#fca5a5', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:'6px'}}>Spelling</div>
-                          <div style={{fontSize:'1rem', color:'#cbd5e1', fontWeight:'500'}}>{mistakeIssues.length} issue{mistakeIssues.length > 1 ? 's' : ''} found</div>
-                        </div>
+                    <div className="priority-card critical" onClick={() => scrollTo(grammarCardRef, true)}>
+                      <div className="priority-icon">
+                        <MdReportProblem />
+                      </div>
+                      <div className="priority-content">
+                        <h4>Grammar & Spelling</h4>
+                        <p className="issue-count">{mistakeIssues.length} Critical Issues</p>
                       </div>
                     </div>
                   )}
-                  {mistakeIssues.length > 0 && (
-                    <div style={{background:'linear-gradient(135deg, rgba(245,158,11,0.12) 0%, rgba(245,158,11,0.04) 100%)', border:'1px solid rgba(245,158,11,0.2)', borderRadius:'12px', padding:'16px', cursor:'pointer', transition:'all 0.3s ease'}} onClick={()=>scrollTo(mistakesRef, true)}>
-                      <div style={{display:'flex', gap:'10px', alignItems:'flex-start'}}>
-                        <MdSpellcheck style={{color:'#fbbf24', fontSize:'1.4rem', flexShrink:0}} />
-                        <div>
-                          <div style={{fontSize:'0.7rem', fontWeight:'800', color:'#fbbf24', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:'6px'}}>Grammar</div>
-                          <div style={{fontSize:'1rem', color:'#cbd5e1', fontWeight:'500'}}>{mistakeIssues.length} issue{mistakeIssues.length > 1 ? 's' : ''} found</div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  {(analysisData?.atsImprovement?.missingKeywords?.length > 0 || analysisData?.atsImprovement?.formatWarnings?.length > 0) && (
-                    <div style={{background:'linear-gradient(135deg, rgba(168,85,247,0.12) 0%, rgba(168,85,247,0.04) 100%)', border:'1px solid rgba(168,85,247,0.2)', borderRadius:'12px', padding:'16px', cursor:'pointer', transition:'all 0.3s ease'}} onClick={()=>scrollTo(grammarRef, true)}>
-                      <div style={{display:'flex', gap:'10px', alignItems:'flex-start'}}>
-                        <MdLightbulb style={{color:'#d8b4fe', fontSize:'1.4rem', flexShrink:0}} />
-                        <div>
-                          <div style={{fontSize:'0.7rem', fontWeight:'800', color:'#d8b4fe', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:'6px'}}>ATS Improvement</div>
-                          <div style={{fontSize:'1rem', color:'#cbd5e1', fontWeight:'500'}}>
-                            {(analysisData?.atsImprovement?.missingKeywords?.length || 0) + (analysisData?.atsImprovement?.formatWarnings?.length || 0)} issue{((analysisData?.atsImprovement?.missingKeywords?.length || 0) + (analysisData?.atsImprovement?.formatWarnings?.length || 0)) > 1 ? 's' : ''}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
+
                   {missingKeywords.length > 0 && (
-                    <div style={{background:'linear-gradient(135deg, rgba(34,197,94,0.12) 0%, rgba(34,197,94,0.04) 100%)', border:'1px solid rgba(34,197,94,0.2)', borderRadius:'12px', padding:'16px', cursor:'pointer', transition:'all 0.3s ease'}} onClick={()=>scrollTo(skillsRef, true)}>
-                      <div style={{display:'flex', gap:'10px', alignItems:'flex-start'}}>
-                        <MdDescription style={{color:'#86efac', fontSize:'1.4rem', flexShrink:0}} />
-                        <div>
-                          <div style={{fontSize:'0.7rem', fontWeight:'800', color:'#86efac', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:'6px'}}>Skill Gaps</div>
-                          <div style={{fontSize:'1rem', color:'#cbd5e1', fontWeight:'500'}}>
-                            {missingKeywords.length} missing skill{missingKeywords.length > 1 ? 's' : ''}
-                          </div>
-                        </div>
+                    <div className="priority-card warning" onClick={() => scrollTo(skillsRef, true)}>
+                      <div className="priority-icon">
+                        <MdDescription />
+                      </div>
+                      <div className="priority-content">
+                        <h4>Skill Gaps</h4>
+                        <p className="issue-count">{missingKeywords.length} Missing Skills</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {(analysisData?.atsImprovement?.missingKeywords?.length > 0 || analysisData?.atsImprovement?.formatWarnings?.length > 0) && (
+                    <div className="priority-card info" onClick={() => scrollTo(redFlagsRef, true)}>
+                      <div className="priority-icon" style={{ color: 'var(--accent-primary)', background: 'var(--accent-glow)' }}>
+                        <MdLightbulb />
+                      </div>
+                      <div className="priority-content">
+                        <h4>ATS Improvement</h4>
+                        <p className="issue-count">
+                          {(analysisData?.atsImprovement?.missingKeywords?.length || 0) + (analysisData?.atsImprovement?.formatWarnings?.length || 0)} Suggestions
+                        </p>
                       </div>
                     </div>
                   )}
                 </div>
               </div>
-            </aside>
-          </div>
-          </div>
-        </div>
+            </div>
+          )}
+        </aside>
       </div>
 
       {/* Footer removed as requested */}
+      {/* Custom Professional Download Modal */}
+      {showDownloadModal && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <div className="modal-header">
+              <div className="modal-icon bubble-green">
+                <MdDescription size={24} />
+              </div>
+              <h3>Download Analysis Report</h3>
+              <button className="close-btn" onClick={() => setShowDownloadModal(false)}>
+                <MdClose size={20} />
+              </button>
+            </div>
+
+            <div className="modal-body">
+              <p>You are about to download the comprehensive PDF report for <strong>{resumeName}</strong>.</p>
+              <div className="modal-preview-stats">
+                <div className="stat-pill">
+                  <span className="label">ATS Score</span>
+                  <span className="val" style={{ color: '#10b981' }}>{overallScore}/100</span>
+                </div>
+                <div className="stat-pill">
+                  <span className="label">Issues Found</span>
+                  <span className="val" style={{ color: '#ef4444' }}>{mistakeIssues.length}</span>
+                </div>
+              </div>
+              <p className="subtext">This report includes the ATS Score breakdown, recruiter impressions, keyword gaps, and a step-by-step improvement plan.</p>
+            </div>
+
+            <div className="modal-actions">
+              <button className="btn-ghost" onClick={() => setShowDownloadModal(false)}>Cancel</button>
+              <button className="btn-primary-modal" onClick={confirmDownload}>
+                <MdDownload size={18} />
+                Download PDF Report
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

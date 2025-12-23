@@ -54,9 +54,15 @@ const FileUpload = ({ onResumeUpload }) => {
       
       console.log('Upload response:', response);
       
-      // Pass the real API response to parent component
-      onResumeUpload(response);
-      setUploading(false);
+      // Convert file to Base64 for persistence across refreshes
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const fileUrl = reader.result; // This is the Base64 string
+        // Pass the real API response to parent component, plus the persistent fileUrl
+        onResumeUpload({ ...response, fileUrl });
+        setUploading(false);
+      };
+      reader.readAsDataURL(file);
 
     } catch (error) {
       console.error('Upload error:', error);

@@ -38,7 +38,7 @@ function normalizeCampusAnalysis(ai) {
   const quickFixes = Array.isArray(ai?.quickFixes) ? ai.quickFixes : [];
   const skillsPresent = Array.isArray(ai?.skillKeywordGaps?.skills_present) ? ai.skillKeywordGaps.skills_present : [];
   const missingSkills = Array.isArray(ai?.skillKeywordGaps?.critical_missing) ? ai.skillKeywordGaps.critical_missing : [];
-  
+
   // Extract ATS improvement data
   const atsImprovement = ai?.atsImprovement || {};
   const missingKeywords = Array.isArray(atsImprovement.missingKeywords) ? atsImprovement.missingKeywords : [];
@@ -51,10 +51,28 @@ function normalizeCampusAnalysis(ai) {
   };
 
   return {
+    overallScore: clamp(score, 0, 100),
+    sectionScores: ai?.sectionScores || {},
     atsScore: {
       score: clamp(score, 0, 100),
       level: mapAtsLevel(levelRaw, score),
-      explanation: ai?.atsScore?.explanation || ''
+      explanation: ai?.atsScore?.explanation || ai?.summary || ''
+    },
+    // Include the original atsAnalysis for frontend compatibility
+    atsAnalysis: {
+      keywordMatchScore: clamp(Number(ai?.atsAnalysis?.keywordMatchScore) || 0, 0, 100),
+      presentKeywords: Array.isArray(ai?.atsAnalysis?.presentKeywords) ? ai.atsAnalysis.presentKeywords : skillsPresent,
+      missingKeywords: Array.isArray(ai?.atsAnalysis?.missingKeywords) ? ai.atsAnalysis.missingKeywords : missingSkills,
+    },
+    readabilityScore: {
+      score: clamp(Number(ai?.readabilityScore?.score) || 0, 0, 100),
+      level: ai?.readabilityScore?.level || 'Moderate',
+      explanation: ai?.readabilityScore?.explanation || ''
+    },
+    formatScore: {
+      score: clamp(Number(ai?.formatScore?.score) || 0, 0, 100),
+      level: ai?.formatScore?.level || 'Fair',
+      explanation: ai?.formatScore?.explanation || ''
     },
     atsImprovement: {
       missingKeywords: missingKeywords,
@@ -81,7 +99,7 @@ function normalizeCampusAnalysis(ai) {
       missingKeywords: missingSkills,
       keywordDensity: 0
     },
-    overallSummary: `ATS Score: ${score}/100. ${quickFixes.length} improvements recommended.`,
+    overallSummary: ai?.summary || `ATS Score: ${score}/100. ${quickFixes.length} improvements recommended.`,
     aiModel: ai?.aiModel || '',
     processedAt: ai?.processedAt ? new Date(ai.processedAt) : new Date(),
     processingTime: Number(ai?.processingTime) || undefined

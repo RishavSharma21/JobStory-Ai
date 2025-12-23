@@ -1,7 +1,7 @@
 // services/aiService.js - PRECISE & TOKEN-EFFICIENT Campus Placement Resume Analysis
 const fetch = require('node-fetch');
 
-// ====== OPTIMIZED PROMPT - CONCISE OUTPUT ======
+// ====== OPTIMIZED PROMPT - INDUSTRY READY (TIER 1) ======
 function buildCampusPlacementPrompt(resumeText, targetJobRole, jobDescription = '') {
     const jobDescriptionSection = jobDescription ? `
 JOB DESCRIPTION:
@@ -9,61 +9,115 @@ ${jobDescription}
 
 ` : '';
     
-    return `You are a CONCISE ATS analyzer. Analyze this resume for ${targetJobRole || 'Software Developer'} role.${jobDescription ? ' Reference the provided job description for matching keywords and requirements.' : ''}
+    return `You are a CONSERVATIVE & SKEPTICAL RESUME AUDITOR.
+Your goal is to align with industry-standard ATS tools (like ResumeWorded, Jobscan) which are known for low, harsh scores.
+**Calibration:** A score of 50 is "Average". A score of 70 is "Very Good". A score of 85+ is "Unicorn".
 
-${jobDescriptionSection}RESUME:
+CONTEXT:
+- Role: ${targetJobRole || 'Software Developer'}
+- Candidate: Student / Fresher
+- **Expectation:** Most student resumes are average. Do not inflate scores.
+
+${jobDescriptionSection}RESUME CONTENT:
 ${resumeText}
 
-⚠️ CRITICAL RULES - KEEP IT SHORT:
-- Use 1-2 SHORT sentences max for explanations
-- NO long paragraphs - bullet points only
-- Be DIRECT and SPECIFIC
-- Only include REAL issues you can see
+--------------------------------------------------
+YOUR TASK:
+Audit this resume and return a JSON object.
 
-Return ONLY valid JSON:
+### STEP 1: DETERMINE THE "ATS AUDIT SCORE" (0-100)
+**Do NOT start at 100.** Evaluate based on these strict tiers. Pick a tier, then score within it.
+
+**TIER 1: THE "REJECT" PILE (Score: 0 - 40)**
+- Contains spelling errors / typos.
+- Poor formatting (messy indentation, inconsistent fonts).
+- Generic objective ("Seeking a challenging role...").
+- Zero numbers/metrics in the entire document.
+
+**TIER 2: THE "AVERAGE" PILE (Score: 41 - 58)**
+- **MOST RESUMES BELONG HERE.**
+- Clean formatting but standard content.
+- Lists responsibilities ("Worked on X") instead of achievements.
+- Lacks specific tech stack details in projects.
+- "Soft skills" listed without proof.
+
+**TIER 3: THE "COMPETITIVE" PILE (Score: 59 - 75)**
+- **Requires:** At least 3 specific metrics (e.g., "Reduced latency by 20%").
+- **Requires:** Strong action verbs (Architected, Deployed, Optimized).
+- **Requires:** Perfect grammar and consistent formatting.
+
+**TIER 4: THE "ELITE" PILE (Score: 76 - 100)**
+- **Requires:** Top-tier internships (FAANG/Startups).
+- **Requires:** Open source contributions or deployed live apps with users.
+- **Requires:** ATS Keyword match > 90%.
+
+**CRITICAL SCORING RULES:**
+1. If you find **ANY** spelling error, the score **MUST** be under 40.
+2. If there are **NO** numbers/metrics, the score **MUST** be under 50.
+3. If the summary is generic, deduct 5 points from your calculated score.
+
+### STEP 2: CALCULATE "JD MATCH SCORE" (Relevance) -> "atsAnalysis.keywordMatchScore"
+**Method: MATCHING.** This is independent of quality.
+1. From the JOB DESCRIPTION section above, extract all required skills, tools, and technologies (including those listed as required, must-have, or preferred).
+2. Match these keywords in the resume, regardless of section. Allow for common synonyms (e.g., "JS" for "JavaScript").
+3. Score = (Number of JD keywords found in resume) / (Total JD keywords) × 100.
+4. List both present and missing keywords in the output.
+5. If any "must-have" or "required" skill is missing, flag this in the output.
+
+### STEP 3: GENERATE FEEDBACK
+1. **GRAMMAR & SPELLING:**
+   - Flag every single typo (e.g., "java" -> "Java").
+
+2. **QUICK FIXES (Actionable & Specific):**
+   - Identify the top 3-5 flaws that keep the resume in its current Tier.
+   - **Prefix with CATEGORY:** (CRITICAL, MISSING SKILL, CONTENT, FORMATTING, SPELLING).
+   - **Example:** "CONTENT: You are in Tier 2 because you lack metrics. Add 'Handled 500+ concurrent users' to move to Tier 3."
+
+3. **RECRUITER IMPRESSION:**
+   - **Verdict:** "REJECT" (Score < 50), "HOLD" (50-70), "INTERVIEW" (> 70).
+   - **Top Observation:** The main reason for the Tier placement.
+
+4. **ATS KEYWORDS:**
+   - List present and missing keywords.
+
+--------------------------------------------------
+JSON OUTPUT FORMAT (Strictly adhere to this):
 
 {
-  "atsScore": {
-    "score": <NUMBER 0-100>,
-    "level": "Poor|Fair|Good|Excellent",
-    "explanation": "<ONE short sentence - max 15 words>"
+  "overallScore": <Number 0-100>,
+  "summary": "<String>",
+  "sectionScores": {
+    "education": <Number 0-10>,
+    "skills": <Number 0-10>,
+    "projects": <Number 0-10>,
+    "experience": <Number 0-10>,
+    "formatting": <Number 0-10>
   },
   "grammarSpelling": [
-    "<Format: 'Section: error → fix'. Example: 'Education: Excepted → Expected'. Empty [] if clean. MAX 3 items>"
+    "<String: e.g., 'Typo in Education: Unversity -> University'>"
   ],
-  "atsImprovement": {
-    "missingKeywords": [
-      "<Top 3-5 MISSING tech skills. Just keywords, no explanations. Example: 'Docker', 'Kubernetes', 'CI/CD'. Empty [] if good>"
-    ],
-    "quickFixes": [
-      "<Top 3-5 SHORT fixes. Format: 'Location: before → after'. Keep 'after' under 20 words. Example: 'Bullet 2: Built app → Built e-commerce app handling 10K users with 99% uptime'>"
-    ],
-    "formatWarnings": [
-      "<ONLY critical format issues. One sentence each. MAX 2 items. Empty [] if clean>"
-    ],
-    "estimatedImprovement": {
-      "currentScore": <same as atsScore>,
-      "potentialScore": <currentScore + realistic boost>,
-      "impact": "Low|Medium|High"
-    }
-  },
   "quickFixes": [
-    "<Top 3-5 SHORT action items. MAX 10 words each. Example: '1. Education: Fix Excepted → Expected', '2. Add Docker, Kubernetes to skills', '3. Bullet 3: Add metrics (reduced time 40%)'>"
+    "<String: CATEGORY: Specific actionable fix 1>",
+    "<String: CATEGORY: Specific actionable fix 2>",
+    "<String: CATEGORY: Specific actionable fix 3>"
   ],
-  "skillKeywordGaps": {
-    "skills_present": [<List found skills - just names, no descriptions. Example: "React", "Node.js", "Python">],
-    "critical_missing": [<Top 2-3 MISSING critical skills with ONE word reason. Example: "Docker (required)", "Testing (standard)". Empty [] if 8+ skills present>]
-  }
+  "recruiterImpression": {
+    "verdict": "<String: Positive/Neutral/Negative>",
+    "skimTime": "<String: e.g., '8-10 seconds'>",
+    "topObservation": "<String: What stands out first?>"
+  },
+  "atsAnalysis": {
+    "missingKeywords": ["<String: Missing critical skills>"],
+    "presentKeywords": ["<String: Skills found in resume>"],
+    "keywordMatchScore": <Number 0-100>,
+    "missingRequiredKeywords": ["<String: Required but missing skills>"]
+  },
+  
+  // Legacy fields for compatibility
+  "redFlags": [],
+  "actionPlan": { "high": [], "medium": [], "low": [] }
 }
-
-🎯 KEEP IT CONCISE:
-- Each suggestion: 5-20 words MAX
-- No lengthy explanations
-- Direct, actionable advice only
-- Remove fluff and filler words
-
-Resume Text:
-${resumeText}`;
+`;
 }
 
 
@@ -100,6 +154,35 @@ function extractJson(text) {
   return null;
 }
 
+// Fallback skill extractor
+function extractSkillsFallback(text) {
+    const commonSkills = [
+        "Java", "Python", "C++", "JavaScript", "TypeScript", "React", "Angular", "Vue", "Node.js", "Express",
+        "Spring", "Hibernate", "Django", "Flask", "SQL", "MySQL", "PostgreSQL", "MongoDB", "AWS", "Azure",
+        "Docker", "Kubernetes", "Git", "GitHub", "HTML", "CSS", "SASS", "Linux", "Agile", "Scrum",
+        "Machine Learning", "Deep Learning", "Data Analysis", "Communication", "Leadership", "Problem Solving",
+        "OOP", "DSA", "Data Structures", "Algorithms"
+    ];
+    
+    const found = [];
+    const lowerText = text.toLowerCase();
+    
+    commonSkills.forEach(skill => {
+        // Use word boundary check to avoid partial matches (e.g. "Java" in "JavaScript")
+        // Exception for C++ which has special chars
+        if (skill === "C++") {
+             if (lowerText.includes("c++")) found.push(skill);
+        } else {
+             const regex = new RegExp(`\\b${skill.toLowerCase()}\\b`);
+             if (regex.test(lowerText)) {
+                 found.push(skill);
+             }
+        }
+    });
+    
+    return [...new Set(found)]; // Remove duplicates
+}
+
 // Main AI processing function with retry logic and model fallbacks
 async function processWithAI(resumeDocument, targetJobRole = 'Not specified', jobDescription = '') {
     console.log(`Starting campus placement AI analysis for: ${resumeDocument.fileName}`);
@@ -118,14 +201,16 @@ async function processWithAI(resumeDocument, targetJobRole = 'Not specified', jo
 
   // Check for API key
   const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    console.warn('GEMINI_API_KEY is not set. Returning fallback campus placement analysis.');
+  const groqKey = process.env.GROQ_API_KEY;
+
+  if (!apiKey && !groqKey) {
+    console.warn('Neither GEMINI_API_KEY nor GROQ_API_KEY is set. Returning fallback campus placement analysis.');
     const resumeText = resumeDocument.cleanedText || resumeDocument.extractedText;
     if (!resumeText || resumeText.trim().length === 0) {
       throw new Error('No text found in the resume document.');
     }
     const fallback = generateCampusPlacementFallback(resumeText, targetJobRole);
-    fallback.warning = 'AI key missing: using fallback analysis. Set GEMINI_API_KEY in backend/.env to enable real AI.';
+    fallback.warning = 'AI key missing: using fallback analysis. Set GEMINI_API_KEY or GROQ_API_KEY in backend/.env to enable real AI.';
     fallback.fallbackReason = 'missing_api_key';
     return fallback;
   }
@@ -137,122 +222,150 @@ async function processWithAI(resumeDocument, targetJobRole = 'Not specified', jo
     }
 
   // Retry logic & model fallbacks
-  const maxRetries = 5;
-  const retryDelayBase = 2000;  // Start with 2 seconds
-  const primaryModel = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
-  const fallbackModels = (process.env.GEMINI_MODEL_FALLBACKS || 'gemini-2.5-pro-preview-03-25,gemini-2.5-flash-preview-05-20')
-    .split(',')
-    .map(s => s.trim())
-    .filter(Boolean);
+  const maxRetries = 3; // Reduced from 5
+  const retryDelayBase = 1000;
+  
+  // CRITICAL FIX: Use working flash-latest model as primary
+  const primaryModel = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
+  const fallbackModels = ['gemini-2.0-flash-exp', 'gemini-1.5-pro'];
   const modelCandidates = [primaryModel, ...fallbackModels];
 
+  // Add Groq models if key exists (Prioritize Groq if Gemini is failing)
+  if (groqKey) {
+      console.log('🚀 Groq API Key detected. Adding Groq models to candidates.');
+      modelCandidates.unshift('groq/llama-3.3-70b-versatile');
+      modelCandidates.push('groq/mixtral-8x7b-32768');
+  }
+
   // Reduce payload risk: trim very long resumes (server-side safeguard)
-  const MAX_CHARS = 12000;
+  const MAX_CHARS = 15000;
   const safeText = resumeText.length > MAX_CHARS ? resumeText.slice(0, MAX_CHARS) + '\n...[truncated]' : resumeText;
 
   for (const model of modelCandidates) {
     console.log(`[AI] Trying model: ${model}`);
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
-      console.log(`Attempt ${attempt}/${maxRetries}: Sending campus placement analysis prompt to Gemini API...`);
-
+            let rawResponseText = '';
+            
             // Build the campus placement prompt with actual values
-      const prompt = buildCampusPlacementPrompt(safeText, targetJobRole, jobDescription);
-      console.log(`[AI] Using Gemini model: ${model}`);
-      
-      // Ensure model name is clean (no models/ prefix for the ID part)
-      const cleanModel = model.replace(/^models\//, '');
-      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${cleanModel}:generateContent?key=${apiKey}`;
-      
-      console.log(`[AI] Endpoint: ${endpoint.substring(0, 80)}...`);
+            const prompt = buildCampusPlacementPrompt(safeText, targetJobRole, jobDescription);
 
-      const requestBody = {
-                contents: [{
-                    parts: [{
-                        text: prompt
-                    }]
-                }],
-                generationConfig: {
-      temperature: 0.2,
-      maxOutputTokens: 2048,
-      topP: 0.95,
-      topK: 40,
-      responseMimeType: 'application/json'
-                },
-                safetySettings: [
-                  {category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE'},
-                  {category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE'},
-                  {category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE'},
-                  {category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE'}
-                ]
-            };
-
-      const apiResponse = await fetch(endpoint, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(requestBody),
-                timeout: 20000 // 20 second timeout for faster response
-            });
-
-            if (!apiResponse.ok) {
-                const errorText = await apiResponse.text();
-                console.error(`Gemini API Error (${apiResponse.status}):`, errorText.substring(0, 100));
+            // --- GROQ API HANDLER ---
+            if (model.startsWith('groq/')) {
+                console.log(`Attempt ${attempt}/${maxRetries}: Sending prompt to Groq API (${model})...`);
+                const cleanModel = model.replace('groq/', '');
                 
-                // Check if it's a temporary error that we should retry
-                if (apiResponse.status === 503 || apiResponse.status === 429 || apiResponse.status === 500) {
-                    console.error(`Retryable error (${apiResponse.status}) - Attempt ${attempt}/${maxRetries}`);
-                    
-          if (attempt < maxRetries) {
-            // For 429 (rate limit), use larger exponential backoff
-            const baseDelay = apiResponse.status === 429 ? 3000 : retryDelayBase;
-            const jitter = Math.floor(Math.random() * 2000);
-            const delay = baseDelay * Math.pow(2, attempt - 1) + jitter;
-            console.log(`Waiting ${delay}ms before retry...`);
-            await new Promise(resolve => setTimeout(resolve, delay));
-                        continue; // Try again
-                    } else {
-                        // Last attempt failed, return fallback data
-                        console.log('All retry attempts exhausted, returning fallback analysis...');
-            const fb = generateCampusPlacementFallback(resumeText, targetJobRole);
-            fb.warning = `Gemini API error ${apiResponse.status}. All retries exhausted.`;
-            fb.fallbackReason = `api_error_${apiResponse.status}_exhausted`;
-            return fb;
-                    }
-                } else {
-                    // Non-retryable error
-                    console.error(`Non-retryable Gemini API error (${apiResponse.status})`);
-          const fb = generateCampusPlacementFallback(resumeText, targetJobRole);
-          fb.warning = `Non-retryable Gemini API error ${apiResponse.status}. Using fallback.`;
-          fb.fallbackReason = `api_error_${apiResponse.status}`;
-          return fb;
+                const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${groqKey}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        messages: [{ role: 'user', content: prompt }],
+                        model: cleanModel,
+                        temperature: 0.2,
+                        response_format: { type: "json_object" }
+                    })
+                });
+
+                if (!response.ok) {
+                    const err = await response.text();
+                    console.error(`Groq API Error (${response.status}):`, err);
+                    if (response.status === 429) break; // Rate limit, try next model
+                    throw new Error(`Groq API Error: ${response.status}`);
                 }
-            }
 
-            const json = await apiResponse.json();
-            
-            // Try multiple extraction paths
-            let rawResponseText = json?.candidates?.[0]?.content?.parts?.[0]?.text;
-            
-            // Fallback: check if text is in different location
-            if (!rawResponseText && json?.candidates?.[0]?.text) {
-              rawResponseText = json.candidates[0].text;
-            }
-            
-            // Fallback: check grounding metadata
-            if (!rawResponseText && json?.candidates?.[0]?.groundingMetadata?.retrievalQueries?.[0]) {
-              rawResponseText = json.candidates[0].groundingMetadata.retrievalQueries[0];
-            }
-            
-            // Check if model is in thinking mode (no parts array)
-            if (!rawResponseText && json?.candidates?.[0]?.content && !json.candidates[0].content.parts) {
-              console.warn('⚠️ Model returned thinking mode response (no parts array). Treating as empty response.');
-              throw new Error('Model in thinking mode - no text content available');
-            }
+                const json = await response.json();
+                rawResponseText = json.choices[0].message.content;
+            } 
+            // --- GEMINI API HANDLER ---
+            else {
+                console.log(`Attempt ${attempt}/${maxRetries}: Sending campus placement analysis prompt to Gemini API...`);
+                // Ensure model name is clean (no models/ prefix for the ID part)
+                const cleanModel = model.replace(/^models\//, '');
+                const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${cleanModel}:generateContent?key=${apiKey}`;
+                
+                console.log(`[AI] Endpoint: ${endpoint.substring(0, 80)}...`);
 
-            if (!rawResponseText) {
-                console.error("Full API Response:", JSON.stringify(json, null, 2));
-                throw new Error("Failed to extract text from Gemini API response. Response structure may have changed.");
-            }
+                const requestBody = {
+                    contents: [{
+                        parts: [{
+                            text: prompt
+                        }]
+                    }],
+                    generationConfig: {
+                        temperature: 0.2,
+                        maxOutputTokens: 4000, // Increased to prevent truncation
+                        topP: 0.95,
+                        topK: 40,
+                        responseMimeType: 'application/json'
+                    },
+                    safetySettings: [
+                        {category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE'},
+                        {category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE'},
+                        {category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE'},
+                        {category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE'}
+                    ]
+                };
+
+                const apiResponse = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestBody),
+                    timeout: 25000 
+                });
+
+                if (!apiResponse.ok) {
+                    const errorText = await apiResponse.text();
+                    console.error(`Gemini API Error (${apiResponse.status}):`, errorText.substring(0, 100));
+                    
+                    // CRITICAL FIX: If Rate Limited (429), DO NOT RETRY this model. Switch to next model immediately.
+                    if (apiResponse.status === 429) {
+                        console.warn(`[AI] Quota exceeded for ${model}. Switching to next model immediately.`);
+                        break; // Break inner retry loop, move to next model
+                    }
+                    
+                    // Check if it's a temporary error that we should retry
+                    if (apiResponse.status === 503 || apiResponse.status === 500) {
+                        console.error(`Retryable error (${apiResponse.status}) - Attempt ${attempt}/${maxRetries}`);
+                        
+                        if (attempt < maxRetries) {
+                            const delay = retryDelayBase * attempt;
+                            console.log(`Waiting ${delay}ms before retry...`);
+                            await new Promise(resolve => setTimeout(resolve, delay));
+                            continue;
+                        }
+                    }
+                    break; // Break for other errors
+                }
+
+                const json = await apiResponse.json();
+                
+                // Try multiple extraction paths
+                rawResponseText = json?.candidates?.[0]?.content?.parts?.[0]?.text;
+                
+                // Fallback: check if text is in different location
+                if (!rawResponseText && json?.candidates?.[0]?.text) {
+                rawResponseText = json.candidates[0].text;
+                }
+                
+                // Fallback: check grounding metadata
+                if (!rawResponseText && json?.candidates?.[0]?.groundingMetadata?.retrievalQueries?.[0]) {
+                rawResponseText = json.candidates[0].groundingMetadata.retrievalQueries[0];
+                }
+                
+                // Check if model is in thinking mode (no parts array)
+                if (!rawResponseText && json?.candidates?.[0]?.content && !json.candidates[0].content.parts) {
+                console.warn('⚠️ Model returned thinking mode response (no parts array). Treating as empty response.');
+                throw new Error('Model in thinking mode - no text content available');
+                }
+
+                if (!rawResponseText) {
+                    console.error("Full API Response:", JSON.stringify(json, null, 2));
+                    throw new Error("Failed to extract text from Gemini API response. Response structure may have changed.");
+                }
+            } // End Gemini Handler
 
             // Clean and parse response
             const aiAnalysisData = extractJson(rawResponseText);
@@ -276,17 +389,65 @@ async function processWithAI(resumeDocument, targetJobRole = 'Not specified', jo
             aiAnalysisData.aiModel = model;
             aiAnalysisData.processedAt = new Date().toISOString();
 
+            // --- ROBUST FALLBACK FOR SKILLS ---
+            if (!aiAnalysisData.atsAnalysis) {
+                aiAnalysisData.atsAnalysis = {};
+            }
+            
+            // If AI returned no skills or empty list, use regex extraction
+            if (!aiAnalysisData.atsAnalysis.presentKeywords || aiAnalysisData.atsAnalysis.presentKeywords.length === 0) {
+                console.log('⚠️ AI returned no skills. Using regex fallback extraction.');
+                aiAnalysisData.atsAnalysis.presentKeywords = extractSkillsFallback(safeText);
+            }
+            // ----------------------------------
+
+            // --- BACKWARD COMPATIBILITY LAYER (For Old Frontend) ---
+            if (aiAnalysisData.overallScore !== undefined && !aiAnalysisData.atsScore) {
+                aiAnalysisData.atsScore = {
+                    score: aiAnalysisData.overallScore,
+                    level: aiAnalysisData.overallScore > 80 ? "Excellent" : aiAnalysisData.overallScore > 60 ? "Good" : "Poor",
+                    explanation: aiAnalysisData.summary || "Analysis complete."
+                };
+            }
+            if (aiAnalysisData.recruiterImpression && !aiAnalysisData.readabilityScore) {
+                aiAnalysisData.readabilityScore = {
+                    score: aiAnalysisData.sectionScores?.formatting ? aiAnalysisData.sectionScores.formatting * 10 : 70,
+                    level: "Moderate",
+                    explanation: aiAnalysisData.recruiterImpression.verdict || "Readable"
+                };
+            }
+            if (aiAnalysisData.sectionScores && !aiAnalysisData.formatScore) {
+                aiAnalysisData.formatScore = {
+                    score: aiAnalysisData.sectionScores.formatting * 10,
+                    level: aiAnalysisData.sectionScores.formatting > 8 ? "Excellent" : "Average",
+                    explanation: "Based on section analysis"
+                };
+            }
+            if (aiAnalysisData.actionPlan && !aiAnalysisData.quickFixes) {
+                aiAnalysisData.quickFixes = [
+                    ...(aiAnalysisData.actionPlan.high || []),
+                    ...(aiAnalysisData.actionPlan.medium || [])
+                ].slice(0, 5);
+            }
+            if (aiAnalysisData.atsAnalysis && !aiAnalysisData.skillKeywordGaps) {
+                aiAnalysisData.skillKeywordGaps = {
+                    skills_present: aiAnalysisData.atsAnalysis.presentKeywords || [],
+                    critical_missing: aiAnalysisData.atsAnalysis.missingKeywords || []
+                };
+            }
+            // -------------------------------------------------------
+
             console.log(`Campus placement AI analysis completed successfully in ${processingTime}ms`);
             return aiAnalysisData;
 
         } catch (error) {
             console.error(`Error on attempt ${attempt}:`, error.message);
             
-      if (attempt < maxRetries) {
-        const jitter = Math.floor(Math.random() * 2000);
-        const delay = retryDelayBase * Math.pow(2, attempt - 1) + jitter;
-        console.log(`Retrying in ${delay}ms...`);
-        await new Promise(resolve => setTimeout(resolve, delay));
+            if (attempt < maxRetries) {
+                const jitter = Math.floor(Math.random() * 2000);
+                const delay = retryDelayBase * Math.pow(2, attempt - 1) + jitter;
+                console.log(`Retrying in ${delay}ms...`);
+                await new Promise(resolve => setTimeout(resolve, delay));
             } else {
               console.log(`[AI] Attempts exhausted for model ${model}`);
               break;
@@ -310,28 +471,64 @@ function generateCampusPlacementFallback(resumeText, targetJobRole) {
     const hasProjects = /project|built|developed|created|designed/.test(resumeText.toLowerCase());
     const campusSkills = ['java', 'python', 'javascript', 'react', 'html', 'css', 'sql', 'mysql', 'mongodb', 'node', 'express', 'spring', 'android', 'flutter'];
     const foundSkills = campusSkills.filter(skill => resumeText.toLowerCase().includes(skill));
+    const score = hasProjects && foundSkills.length > 0 ? 60 : 35;
 
     return {
-        atsScore: {
-            score: hasProjects && foundSkills.length > 0 ? 60 : 35,
-            level: hasProjects && foundSkills.length > 0 ? "Fair" : "Poor",
-            explanation: `Basic scan: ${hasProjects ? 'Projects visible' : 'Need projects'}. ${foundSkills.length} skills found. AI offline - enable for full analysis.`
+        overallScore: score,
+        summary: `Basic scan (AI Offline): Found ${foundSkills.length} skills. ${hasProjects ? 'Projects detected.' : 'No projects detected.'} Enable AI for full analysis.`,
+        sectionScores: {
+            education: 5,
+            skills: foundSkills.length > 3 ? 7 : 3,
+            projects: hasProjects ? 6 : 2,
+            experience: 4,
+            formatting: 5
+        },
+        redFlags: [
+            "AI Service Unavailable - Cannot detect critical red flags",
+            foundSkills.length === 0 ? "No technical skills detected" : null,
+            !hasProjects ? "No projects section detected" : null
+        ].filter(Boolean),
+        recruiterImpression: {
+            verdict: score > 50 ? "Neutral" : "Negative",
+            skimTime: "N/A (AI Offline)",
+            topObservation: "AI service is currently offline. Basic keyword scan only."
+        },
+        actionPlan: {
+            high: [
+                "Check internet connection and retry for AI analysis",
+                "Ensure resume is readable PDF"
+            ],
+            medium: [
+                "Add more technical keywords",
+                "Quantify project achievements"
+            ],
+            low: [
+                "Check formatting consistency"
+            ]
+        },
+        atsAnalysis: {
+            missingKeywords: ["AI", "Offline", "Retry"],
+            keywordMatchScore: score
         },
         grammarSpelling: ["AI offline - manual review needed"],
-        recruiterInsights: {
-            overview: `Basic scan only (AI offline): ${foundSkills.length > 0 ? 'Some skills present' : 'Skills unclear'}. ${hasProjects ? 'Has projects' : 'Need projects'}. Enable AI for brutal honest feedback.`,
-            keyStrengths: foundSkills.length > 0 ? [`Found: ${foundSkills.join(', ')}`] : ["Need AI analysis"],
-            recommendations: ["Enable AI for detailed feedback", "Add clear contact info", "Add metrics to projects"]
+        
+        // Legacy fields for backward compatibility
+        atsScore: {
+            score: score,
+            level: score > 50 ? "Fair" : "Poor",
+            explanation: "AI offline. Basic keyword scan only."
         },
-        quickFixes: [
-            "AI offline - can't detect specific issues",
-            "Check spelling manually",
-            "Add project metrics"
-        ],
+        recruiterInsights: {
+            overview: "AI offline.",
+            keyStrengths: foundSkills,
+            concerningAreas: ["AI offline"],
+            recommendations: ["Retry analysis"]
+        },
         skillKeywordGaps: {
             skills_present: foundSkills,
-            critical_missing: ["AI needed for gap analysis"]
+            critical_missing: ["AI needed"]
         },
+        
         processingTime: 100,
         aiModel: "fallback",
         processedAt: new Date().toISOString(),
@@ -393,6 +590,45 @@ async function listModels() {
   } catch (err) {
     return { ok: false, error: err.message };
   }
+}
+
+// Utility: extract JSON block even if model wrapped it in prose/code fences
+function extractJson(text) {
+  if (!text) return null;
+  let t = text.trim();
+  
+  // Remove markdown code blocks if present
+  t = t.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '');
+  
+  // Try direct parse first
+  try { return JSON.parse(t); } catch (_) { /* continue to extraction */ }
+  
+  // Extract JSON from text
+  const first = t.indexOf('{');
+  const last = t.lastIndexOf('}');
+  
+  if (first !== -1 && last !== -1 && last > first) {
+    let slice = t.slice(first, last + 1);
+    
+    // Try parsing the slice
+    try { return JSON.parse(slice); } catch (err) {
+      console.log(`JSON parse error after cleanup: ${err.message}`);
+      
+      // Attempt to repair truncated JSON
+      try {
+        const repaired = slice + '"}'; // Try closing a string and the object
+        return JSON.parse(repaired);
+      } catch (e) {
+         try {
+            const repaired2 = slice + '}'; // Try just closing the object
+            return JSON.parse(repaired2);
+         } catch (e2) {
+             // Give up
+         }
+      }
+    }
+  }
+  return null;
 }
 
 module.exports = {
