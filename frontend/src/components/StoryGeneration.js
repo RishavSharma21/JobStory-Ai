@@ -2,15 +2,11 @@ import React, { useMemo, useRef, useState, useEffect } from 'react';
 // Using Material Design icon set for a consistent visual language
 import { MdSecurity, MdSpellcheck, MdFormatListBulleted, MdReportProblem, MdBuild, MdDownload, MdRefresh, MdDescription, MdAutoAwesome, MdPerson, MdCode, MdEditNote, MdLightbulb, MdRocket, MdLock, MdInfoOutline, MdClose, MdHelpOutline, MdWarning } from 'react-icons/md';
 import './StoryGeneration.css';
+import './LoadingAndAccessibility.css';
 import { generateCompleteReport } from '../utils/pdfDownload';
 
 const StoryGeneration = ({ resumeData, onSaveToHistory, onBack }) => {
-  // Debug: Log the resumeData to see what we're getting
-  console.log('🔍 StoryGeneration resumeData:', resumeData);
-  console.log('🔍 Analysis data:', resumeData?.analysis);
-  console.log('🔍 Full object keys:', resumeData ? Object.keys(resumeData) : 'No resumeData');
-
-  // Safety check - if no resumeData, show loading state
+  // extracting resume data
   if (!resumeData) {
     return (
       <div className="analysis-page">
@@ -246,20 +242,20 @@ const StoryGeneration = ({ resumeData, onSaveToHistory, onBack }) => {
 
   // Combined ATS score (base from AI if available, adjusted by compatibility warnings)
   const atsCombined = useMemo(() => {
-    const hasFinite = Number.isFinite(displayData?.atsScore?.score);
-    // NEW: Check for overallScore (new format) or atsScore.score (old format)
-    const rawScore = displayData?.overallScore ?? (hasFinite ? displayData.atsScore.score : 75);
-    const base = isAIUnavailable ? 75 : rawScore;
+    // 1. Trust the score from the backend/database (it is the source of truth)
+    const dbScore = analysisData?.atsScore?.score || analysisData?.overallScore;
+    const hasDbScore = Number.isFinite(dbScore);
+
+    // 2. Base score: Use DB score if valid, else fallback to 75 (if AI unavailable)
+    const base = hasDbScore ? dbScore : (isAIUnavailable ? 75 : 0);
 
     // NEW: Extract Keyword Match Score with Fallback Calculation
     let kScore = displayData?.atsAnalysis?.keywordMatchScore;
     if (typeof kScore !== 'number') {
       // Fallback: Calculate from arrays if explicit score is missing
-      // Use the already computed presentSkills and missingKeywords arrays which handle data location fallbacks
       const present = presentSkills.length || 0;
       const missing = missingKeywords.length || 0;
       const total = present + missing;
-      // If we have data, calculate percentage. If no data, default to 0.
       kScore = total > 0 ? Math.round((present / total) * 100) : 0;
     }
     const keywordScore = kScore;
@@ -274,7 +270,11 @@ const StoryGeneration = ({ resumeData, onSaveToHistory, onBack }) => {
     if (atsCompatibility.headerFooter) penalty += 8;
     if (atsCompatibility.lowContrast) penalty += 6;
     if (atsCompatibility.fancyFonts) penalty += 5;
-    const score = Math.max(0, Math.min(100, Math.round(base - penalty)));
+
+    // CHANGED: Do NOT apply penalties to the base score. The AI score is final.
+    // We only use 'risks' for explanation purposes.
+    const score = base;
+
     const level = score >= 85 ? 'Excellent' : score >= 70 ? 'Good' : score >= 50 ? 'Fair' : 'Poor';
     const risks = [
       (wordCount > 0 && !atsCompatibility.scannable),
@@ -285,9 +285,10 @@ const StoryGeneration = ({ resumeData, onSaveToHistory, onBack }) => {
       atsCompatibility.lowContrast,
       atsCompatibility.fancyFonts
     ].filter(Boolean).length;
+
     const explanation = penalty === 0
       ? 'No ATS layout risks detected.'
-      : `Base ${base} adjusted by ${risks} ATS layout risk(s) (−${penalty}).`;
+      : `Score based on AI analysis. ${risks} potential formatting risks detected separately.`;
     return { score, level, explanation, keywordScore, keywordLevel };
   }, [displayData, atsCompatibility, isAIUnavailable, wordCount, presentSkills, missingKeywords]);
 
@@ -540,15 +541,15 @@ const StoryGeneration = ({ resumeData, onSaveToHistory, onBack }) => {
             </div>
           </div>
 
-          <nav className="nav-menu">
-            <button className={`nav-btn ${activeSection === 'scores' ? 'active' : ''}`} onClick={() => scrollTo(sectionScoresRef, 'scores')}><MdFormatListBulleted /> Score Breakdown</button>
-            <button className={`nav-btn ${activeSection === 'grammar' ? 'active' : ''}`} onClick={() => scrollTo(grammarCardRef, 'grammar')}><MdSpellcheck /> Grammar & Spelling</button>
-            <button className={`nav-btn ${activeSection === 'fixes' ? 'active' : ''}`} onClick={() => scrollTo(fixesRef, 'fixes')}><MdBuild /> Quick Fixes</button>
-            <button className={`nav-btn ${activeSection === 'skills' ? 'active' : ''}`} onClick={() => scrollTo(skillsRef, 'skills')}><MdDescription /> Skill Gaps</button>
-            <button className={`nav-btn ${activeSection === 'redflags' ? 'active' : ''}`} onClick={() => scrollTo(redFlagsRef, 'redflags')}><MdLightbulb /> Recruiter Impression</button>
+          <nav className="nav-menu" role="navigation" aria-label="Resume analysis sections">
+            <button className={`nav-btn ${activeSection === 'scores' ? 'active' : ''}`} onClick={() => scrollTo(sectionScoresRef, 'scores')} aria-label="Navigate to Score Breakdown section" aria-current={activeSection === 'scores' ? 'page' : undefined}><MdFormatListBulleted aria-hidden="true" /> Score Breakdown</button>
+            <button className={`nav-btn ${activeSection === 'grammar' ? 'active' : ''}`} onClick={() => scrollTo(grammarCardRef, 'grammar')} aria-label="Navigate to Grammar and Spelling section" aria-current={activeSection === 'grammar' ? 'page' : undefined}><MdSpellcheck aria-hidden="true" /> Grammar & Spelling</button>
+            <button className={`nav-btn ${activeSection === 'fixes' ? 'active' : ''}`} onClick={() => scrollTo(fixesRef, 'fixes')} aria-label="Navigate to Quick Fixes section" aria-current={activeSection === 'fixes' ? 'page' : undefined}><MdBuild aria-hidden="true" /> Quick Fixes</button>
+            <button className={`nav-btn ${activeSection === 'skills' ? 'active' : ''}`} onClick={() => scrollTo(skillsRef, 'skills')} aria-label="Navigate to Skill Gaps section" aria-current={activeSection === 'skills' ? 'page' : undefined}><MdDescription aria-hidden="true" /> Skill Gaps</button>
+            <button className={`nav-btn ${activeSection === 'redflags' ? 'active' : ''}`} onClick={() => scrollTo(redFlagsRef, 'redflags')} aria-label="Navigate to Recruiter Impression section" aria-current={activeSection === 'redflags' ? 'page' : undefined}><MdLightbulb aria-hidden="true" /> Recruiter Impression</button>
             {/* Main Action - Updated to open Modal */}
-            <button className="btn-download" onClick={handleDownloadClick}>
-              <MdDownload size={20} />
+            <button className="btn-download" onClick={handleDownloadClick} aria-label="Download complete resume analysis report as PDF">
+              <MdDownload size={20} aria-hidden="true" />
               Download Report
             </button>
 
@@ -564,7 +565,7 @@ const StoryGeneration = ({ resumeData, onSaveToHistory, onBack }) => {
               <h2><MdFormatListBulleted /> SECTION-WISE BREAKDOWN</h2>
               <div className="score-explanation" style={{ marginBottom: 16, color: 'var(--text-muted)' }}>Detailed scoring per section (0-10):</div>
               {Object.keys(sectionScores).length > 0 ? (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '16px' }}>
+                <div className="score-cards-mini" style={{ display: 'grid', gap: '16px' }}>
                   {Object.entries(sectionScores).map(([key, val]) => {
                     const sectionTooltips = {
                       education: "Evaluates degree relevance, institution prestige, and clarity.",
@@ -575,7 +576,7 @@ const StoryGeneration = ({ resumeData, onSaveToHistory, onBack }) => {
                     };
 
                     return (
-                      <div key={key} style={{ background: '#ffffff', padding: '20px 16px', border: '1px solid transparent', borderRadius: '14px', textAlign: 'center', transition: 'all 0.3s ease', boxShadow: val >= 8 ? '0 8px 16px -4px rgba(16, 185, 129, 0.12)' : val >= 5 ? '0 8px 16px -4px rgba(245, 158, 11, 0.12)' : '0 8px 16px -4px rgba(239, 68, 68, 0.12)' }}>
+                      <div key={key} className="mini-score" style={{ gap: '4px', transition: 'all 0.3s ease', boxShadow: val >= 8 ? '0 8px 16px -4px rgba(16, 185, 129, 0.12)' : val >= 5 ? '0 8px 16px -4px rgba(245, 158, 11, 0.12)' : '0 8px 16px -4px rgba(239, 68, 68, 0.12)' }}>
                         <div style={{ textTransform: 'uppercase', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '10px', fontWeight: '800', letterSpacing: '0.05em' }}>{key}</div>
                         <div style={{ fontSize: '2rem', fontWeight: '900', color: val >= 8 ? 'var(--status-good)' : val >= 5 ? 'var(--status-fair)' : 'var(--status-poor)', lineHeight: 1 }}>
                           {val}<span style={{ fontSize: '1rem', opacity: 0.6 }}>/10</span>

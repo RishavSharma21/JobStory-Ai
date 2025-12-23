@@ -3,6 +3,7 @@ import { NavLink } from 'react-router-dom';
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import "../App.css";
+import md5 from "../utils/md5";
 
 const Header = ({ user, onLogout, onLoginClick }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -73,6 +74,66 @@ const Header = ({ user, onLogout, onLoginClick }) => {
     console.log(`Theme changed to: ${theme}`);
   }, [theme]);
 
+  // Helper to format name: First Name Only + Title Case (e.g. "RISHAV KUMAR" -> "Rishav")
+  const getFormattedName = (fullName) => {
+    if (!fullName) return "Guest";
+    const firstName = fullName.split(' ')[0];
+    return firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase();
+  };
+
+  // Helper to get initials avatar URL
+  const getInitialsUrl = (name) => {
+    if (!name) return "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSBjknSFU0Y8zCyo-MNCROWd0CRhyrK4TIuY8evOwljxdA4ymnEVy0pEmdddozbuXUPc7Y&usqp=CAU";
+    // Check for spaces to decide between 1 or 2 chars
+    const hasSpace = name.trim().indexOf(' ') !== -1;
+    const lengthParam = hasSpace ? 2 : 1;
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=10b981&color=fff&bold=true&length=${lengthParam}`;
+  };
+
+  // Determine initial image source
+  const getInitialImageSrc = () => {
+    if (!user) return getInitialsUrl("");
+
+    // 1. Google Photo (Highest priority)
+    if (user.picture) return user.picture;
+
+    // 2. Gravatar (If email exists)
+    if (user.email) {
+      try {
+        const emailHash = md5(user.email.trim().toLowerCase());
+        // Use '404' as default so we can catch the error if not found and fallback to initials
+        return `https://www.gravatar.com/avatar/${emailHash}?d=404`;
+      } catch (e) {
+        console.warn('MD5 generation failed', e);
+      }
+    }
+
+    // 3. Fallback to Initials
+    return getInitialsUrl(user.name);
+  };
+
+  const [imageSrc, setImageSrc] = useState(getInitialImageSrc());
+
+  // Update image when user changes
+  useEffect(() => {
+    if (user) {
+      setImageSrc(getInitialImageSrc());
+    } else {
+      setImageSrc(getInitialsUrl(""));
+    }
+  }, [user]);
+
+  const handleImageError = () => {
+    // If current image fails (Google or Gravatar), fallback to Initials
+    if (user && user.name) {
+      const fallbackUrl = getInitialsUrl(user.name);
+      // Only set if different to avoid infinite loops
+      if (imageSrc !== fallbackUrl) {
+        setImageSrc(fallbackUrl);
+      }
+    }
+  };
+
   return (
     <header className="header">
       <div className="header-container">
@@ -84,7 +145,7 @@ const Header = ({ user, onLogout, onLoginClick }) => {
               <path d="M8 8H16V10H8V8Z" fill="#ffffff" />
               <path d="M8 12H16V14H8V12Z" fill="#ffffff" />
               <path d="M8 16H13V18H8V16Z" fill="#ffffff" />
-              <path d="M15 16C15 16.5523 15.4477 17 16 17C16.5523 17 17 16.5523 17 16C17 15.4477 16.5523 15 16 15C15.4477 15 15 15.4477 15 16Z" fill="#ffffff" />
+              <path d="M15 16C15 16.5523 15.4477 17 16 17C16.5523 17 16 16.5523 17 16C17 15.4477 16.5523 15 16 15C15.4477 15 16 15.4477 15 16Z" fill="#ffffff" />
             </svg>
           </div>
           <h1 className="logo">JobStory<span>Ai</span></h1>
@@ -95,19 +156,21 @@ const Header = ({ user, onLogout, onLoginClick }) => {
           <div className="profile-trigger" onClick={() => setIsDropdownOpen(!isDropdownOpen)}>
             <div className="profile-avatar">
               <img
-                src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSBjknSFU0Y8zCyo-MNCROWd0CRhyrK4TIuY8evOwljxdA4ymnEVy0pEmdddozbuXUPc7Y&usqp=CAU"
+                src={imageSrc}
                 alt="Profile"
                 className="avatar-image"
+                onError={handleImageError}
+                referrerPolicy="no-referrer"
               />
             </div>
-            <span className="profile-text">{user ? user.name : "Guest"}</span>
+            <span className="profile-text">{user ? getFormattedName(user.name) : "Guest"}</span>
           </div>
 
           <div className={`profile-dropdown ${isDropdownOpen ? "show" : ""} ${!user ? "logged-out" : ""}`}>
             {dropdownView === "main" ? (
               <>
                 <div className="dropdown-header">
-                  {user ? `Welcome, ${user.name}` : "Welcome Guest"}
+                  {user ? `Welcome, ${getFormattedName(user.name)}` : "Welcome Guest"}
                 </div>
                 <ul className="dropdown-menu">
                   {user && (

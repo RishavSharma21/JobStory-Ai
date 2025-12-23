@@ -316,7 +316,6 @@ const Home = ({ onResumeUpload, setJobRole, onGenerateStory, onSaveToHistory, us
           <h1 className="hero-title">
             Make Your Resume{" "}
             <span className="text-blue-500">ATS-Ready</span> in seconds!
-
           </h1>
 
           <p className="hero-description">
@@ -570,7 +569,7 @@ const Home = ({ onResumeUpload, setJobRole, onGenerateStory, onSaveToHistory, us
                 <a href="#" className="social-link" aria-label="GitHub" title="GitHub">
                   <FaGithub />
                 </a>
-                <a href="mailto:info@jobstoryai.com" className="social-link" aria-label="Email" title="Email">
+                <a href="mailto:jobstory.ai@gmail.com" className="social-link" aria-label="Email" title="Email">
                   <FaEnvelope />
                 </a>
               </div>

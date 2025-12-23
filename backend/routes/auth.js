@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const fetch = require('node-fetch');
 const { OAuth2Client } = require('google-auth-library');
 const User = require('../models/User');
 const auth = require('../middleware/auth');
@@ -19,27 +20,27 @@ router.post('/google', async (req, res) => {
             idToken: token,
             audience: process.env.GOOGLE_CLIENT_ID,
         });
-        const { name, email, sub } = ticket.getPayload(); // sub is google's unique user id
+        const { name, email, sub, picture } = ticket.getPayload(); // sub is google's unique user id
 
         let user = await User.findOne({ email });
 
         if (user) {
             // User exists, log them in
-            // (Optional: Update googleId if not present)
-            if (!user.googleId) {
-                user.googleId = sub;
-                await user.save();
-            }
+            // Update googleId and picture if changed/missing
+            let updated = false;
+            if (!user.googleId) { user.googleId = sub; updated = true; }
+            if (picture && user.picture !== picture) { user.picture = picture; updated = true; }
+            if (updated) await user.save();
         } else {
             // Create a new user
-            // Generate a random password since they use Google
             const randomPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);
 
             user = new User({
                 name,
                 email,
                 password: randomPassword,
-                googleId: sub
+                googleId: sub,
+                picture
             });
 
             const salt = await bcrypt.genSalt(10);
@@ -60,7 +61,7 @@ router.post('/google', async (req, res) => {
             { expiresIn: 360000 },
             (err, jwtToken) => {
                 if (err) throw err;
-                res.json({ token: jwtToken, user: { id: user.id, name: user.name, email: user.email } });
+                res.json({ token: jwtToken, user: { id: user.id, name: user.name, email: user.email, picture: user.picture } });
             }
         );
 
@@ -87,22 +88,23 @@ router.post('/google-access-token', async (req, res) => {
         }
 
         const data = await userInfoRes.json();
-        const { name, email, sub } = data; // sub is google's id
+        const { name, email, sub, picture } = data; // sub is google's id
 
         let user = await User.findOne({ email });
 
         if (user) {
-            if (!user.googleId) {
-                user.googleId = sub;
-                await user.save();
-            }
+            let updated = false;
+            if (!user.googleId) { user.googleId = sub; updated = true; }
+            if (picture && user.picture !== picture) { user.picture = picture; updated = true; }
+            if (updated) await user.save();
         } else {
             const randomPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);
             user = new User({
                 name,
                 email,
                 password: randomPassword,
-                googleId: sub
+                googleId: sub,
+                picture
             });
             const salt = await bcrypt.genSalt(10);
             user.password = await bcrypt.hash(randomPassword, salt);
@@ -117,7 +119,7 @@ router.post('/google-access-token', async (req, res) => {
             { expiresIn: 360000 },
             (err, jwtToken) => {
                 if (err) throw err;
-                res.json({ token: jwtToken, user: { id: user.id, name: user.name, email: user.email } });
+                res.json({ token: jwtToken, user: { id: user.id, name: user.name, email: user.email, picture: user.picture } });
             }
         );
 

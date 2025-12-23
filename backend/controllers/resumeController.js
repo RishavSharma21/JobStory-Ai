@@ -46,16 +46,16 @@ async function uploadResume(req, res) {
     console.log('Extracting and cleaning text from uploaded file...');
     let extractionResult = {};
     try {
-        // Call the function which does the robust text extraction and cleaning
-        extractionResult = await extractTextFromFile(req.file);
-        // If pdfParser.js exports parseResumeFile instead, use:
-        // extractionResult = await parseResumeFile(req.file);
+      // Call the function which does the robust text extraction and cleaning
+      extractionResult = await extractTextFromFile(req.file);
+      // If pdfParser.js exports parseResumeFile instead, use:
+      // extractionResult = await parseResumeFile(req.file);
     } catch (extractionError) {
-         console.error('Error during text extraction/cleaning:', extractionError);
-         return res.status(400).json({
-             error: 'Text processing failed',
-             message: extractionError.message || 'Could not process the PDF file.'
-         });
+      console.error('Error during text extraction/cleaning:', extractionError);
+      return res.status(400).json({
+        error: 'Text processing failed',
+        message: extractionError.message || 'Could not process the PDF file.'
+      });
     }
 
     // Get the cleaned text (or rawText if you prefer to send that to AI)
@@ -81,7 +81,21 @@ async function uploadResume(req, res) {
     const targetJobRole = req.body.jobRole || 'Not specified';
 
     // Create resume document - storing the extracted text for AI processing later
+    // Check for optional auth token to associate upload with a user
+    let userId = null;
+    const token = req.header('x-auth-token');
+    if (token) {
+      try {
+        const jwt = require('jsonwebtoken');
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+        userId = decoded.user.id;
+      } catch (err) {
+        console.warn('Invalid token during upload, proceeding as guest');
+      }
+    }
+
     const resumeData = {
+      user: userId, // Associate with user if logged in
       fileName: req.file.originalname,
       fileType: req.file.mimetype,
       fileSize: req.file.size,
@@ -208,10 +222,10 @@ async function analyzeResume(req, res) {
     // For now, let's assume processWithAI exists and is updated, or you replace the block above.
     // If you remove processWithAI, remove this block and uncomment the placeholder above.
     const { processWithAI } = require('../services/aiService'); // Make sure this path is correct
-    
+
     // ALWAYS run fresh AI analysis (don't use cached analysis)
     console.log('🤖 Starting FRESH AI analysis for:', jobRole);
-    
+
     // Update processing status
     resume.processingStatus = 'processing_ai'; // Indicate AI processing started
     resume.targetJobRole = jobRole; // Update job role
@@ -220,9 +234,9 @@ async function analyzeResume(req, res) {
     const aiResults = await processWithAI(resume, jobRole, jobDescription);
     console.log('✅ AI analysis completed. ATS Score:', aiResults?.atsScore?.score);
 
-  // Normalize AI results to match schema before saving
-  const { normalizeCampusAnalysis } = require('../services/aiNormalizer');
-  const normalizedAi = normalizeCampusAnalysis(aiResults);
+    // Normalize AI results to match schema before saving
+    const { normalizeCampusAnalysis } = require('../services/aiNormalizer');
+    const normalizedAi = normalizeCampusAnalysis(aiResults);
 
     // Update resume with AI analysis
     // Assuming processWithAI returns the structured data directly
@@ -354,6 +368,22 @@ async function getAllResumes(req, res) {
 
     // Build filter query
     const filter = {};
+
+    // CRITICAL: Force User Isolation
+    // Only return resumes belonging to the authenticated user.
+    if (req.user && req.user.id) {
+      filter.user = req.user.id;
+    } else {
+      // If not authenticated, return EMPTY list from DB.
+      // Guests rely on localStorage, not DB persistence for history list.
+      return res.json({
+        success: true,
+        message: 'Guest access - local history only',
+        pagination: { currentPage: 1, totalPages: 0, totalCount: 0 },
+        resumes: []
+      });
+    }
+
     if (status) filter.processingStatus = status;
     if (jobRole) filter.targetJobRole = new RegExp(jobRole, 'i');
 
@@ -430,10 +460,10 @@ async function getResumeSummary(req, res) {
 
     // Ensure aiAnalysis exists
     if (!resume.aiAnalysis) {
-       return res.status(400).json({
-         error: 'AI analysis data missing',
-         message: 'AI analysis was not found for this resume.'
-       });
+      return res.status(400).json({
+        error: 'AI analysis data missing',
+        message: 'AI analysis was not found for this resume.'
+      });
     }
 
     res.json({
@@ -466,14 +496,27 @@ async function getResumeSummary(req, res) {
 async function deleteResume(req, res) {
   try {
     const { id } = req.params;
-    
-    const resume = await Resume.findByIdAndDelete(id);
-    
+    console.log(`[deleteResume] Request to delete ID: ${id}`);
+
+    // Robust Delete: Only delete if it belongs to the user who requested it
+    // If not logged in (guest), allowing delete by ID is risky but consistent with current unrestricted upload.
+    // However, since we added 'auth' middleware, req.user will generally be present.
+    let query = { _id: id };
+    if (req.user && req.user.id) {
+      console.log(`[deleteResume] Restricting delete to User ID: ${req.user.id}`);
+      query.user = req.user.id;
+    }
+
+    const resume = await Resume.findOneAndDelete(query);
+
     if (!resume) {
+      console.warn(`[deleteResume] Resume not found or user mismatch for ID: ${id}`);
       return res.status(404).json({
-        error: 'Resume not found'
+        error: 'Resume not found or access denied'
       });
     }
+
+    console.log(`[deleteResume] Successfully deleted resume: ${id}`);
 
     res.json({
       success: true,

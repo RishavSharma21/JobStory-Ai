@@ -8,9 +8,12 @@ export const uploadResume = async (file, jobRole = '') => {
     formData.append('jobRole', jobRole);
   }
 
+  const token = localStorage.getItem('token');
+
   try {
     const response = await fetch(`${API_BASE_URL}/api/resume/upload`, {
       method: 'POST',
+      headers: token ? { 'x-auth-token': token } : {},
       body: formData,
     });
 
@@ -21,7 +24,7 @@ export const uploadResume = async (file, jobRole = '') => {
 
     return await response.json();
   } catch (err) {
-    // Graceful fallback for demo/mock mode: fabricate a minimal upload response
+    // ... existing catch block ...
     console.warn('[uploadResume] Backend unavailable, using mock upload response:', err?.message);
     return {
       success: true,
@@ -36,16 +39,20 @@ export const uploadResume = async (file, jobRole = '') => {
 };
 
 export const analyzeResume = async (resumeId, jobRole, jobDescription = '') => {
+  const token = localStorage.getItem('token');
   try {
     const response = await fetch(`${API_BASE_URL}/api/resume/${resumeId}/analyze`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { 'x-auth-token': token } : {})
+      },
       body: JSON.stringify({
         jobRole,
         ...(jobDescription && { jobDescription })
       })
     });
-
+    // ... existing ...
     if (!response.ok) {
       const errorData = await safeJson(response);
       throw new Error(errorData?.message || errorData?.error || `Analyze failed (${response.status})`);
@@ -63,8 +70,12 @@ export const analyzeResume = async (resumeId, jobRole, jobDescription = '') => {
 };
 
 export const getResume = async (resumeId) => {
+  const token = localStorage.getItem('token');
   try {
-    const response = await fetch(`${API_BASE_URL}/api/resume/${resumeId}`);
+    const response = await fetch(`${API_BASE_URL}/api/resume/${resumeId}`, {
+      headers: token ? { 'x-auth-token': token } : {}
+    });
+    // ... existing ...
     if (!response.ok) {
       const errorData = await safeJson(response);
       throw new Error(errorData?.error || 'Failed to get resume');
@@ -87,8 +98,11 @@ export const getResume = async (resumeId) => {
 };
 
 export const getAllResumes = async () => {
+  const token = localStorage.getItem('token');
   try {
-    const response = await fetch(`${API_BASE_URL}/api/resume`);
+    const response = await fetch(`${API_BASE_URL}/api/resume`, {
+      headers: token ? { 'x-auth-token': token } : {}
+    });
     if (!response.ok) {
       const errorData = await safeJson(response);
       throw new Error(errorData?.error || 'Failed to get resumes');
@@ -97,6 +111,24 @@ export const getAllResumes = async () => {
   } catch (err) {
     console.warn('[getAllResumes] Backend unavailable, returning empty list:', err?.message);
     return { success: true, resumes: [], pagination: { currentPage: 1, totalPages: 1, totalCount: 0 } };
+  }
+};
+
+export const deleteResume = async (resumeId) => {
+  const token = localStorage.getItem('token');
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/resume/${resumeId}`, {
+      method: 'DELETE',
+      headers: token ? { 'x-auth-token': token } : {}
+    });
+    if (!response.ok) {
+      const errorData = await safeJson(response);
+      throw new Error(errorData?.error || 'Failed to delete resume');
+    }
+    return await response.json();
+  } catch (err) {
+    console.error('[deleteResume] Error:', err.message);
+    throw err;
   }
 };
 

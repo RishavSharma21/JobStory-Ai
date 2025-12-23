@@ -1,13 +1,14 @@
 // src/pages/History.js - Enhanced History Page with Premium Light Theme
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MdSearch, MdAdd, MdDelete, MdDescription, MdWork, MdMoreVert, MdDownload, MdHistory, MdSort } from 'react-icons/md';
+import { MdSearch, MdAdd, MdDelete, MdDescription, MdWork, MdMoreVert, MdDownload, MdHistory, MdSort, MdCalendarToday } from 'react-icons/md';
 import './History.css';
-import { getAllResumes, API_BASE_URL } from '../utils/api';
+import { getAllResumes, getResume, deleteResume, API_BASE_URL } from '../utils/api';
 import { generateCompleteReport } from '../utils/pdfDownload';
 
+// ... imports ...
 
-const History = ({ historyItems, onViewItem }) => {
+const History = ({ historyItems, onViewItem, onDeleteItem }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('newest');
   const [showSortMenu, setShowSortMenu] = useState(false);
@@ -18,10 +19,10 @@ const History = ({ historyItems, onViewItem }) => {
   const [exitingItems, setExitingItems] = useState([]);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
+  const [loadingItemId, setLoadingItemId] = useState(null); // Track item loading state
   const navigate = useNavigate();
 
   // ... (keeping existing useEffects)
-
 
   const sortMenuRef = useRef(null);
   const menuRefs = useRef({});
@@ -67,9 +68,10 @@ const History = ({ historyItems, onViewItem }) => {
     fetchResumes();
   }, []);
 
-  const allItems = [
-    ...historyItems,
-    ...backendResumes
+  // 1. Process & Memoize History Items (Deduplication Sorting)
+  const processedItems = React.useMemo(() => {
+    // A. Backend Items
+    const backendMapped = backendResumes
       .filter(resume => resume.atsScore || (resume.analysis && Object.keys(resume.analysis).length > 0) || resume.analyzedAt)
       .map(resume => ({
         id: resume.resumeId || resume._id,
@@ -84,30 +86,64 @@ const History = ({ historyItems, onViewItem }) => {
           atsScore: { score: resume.atsScore }
         } : (resume.analysis || null),
         fromBackend: true
-      }))
-  ].filter(item => !deletedItemIds.includes(item.id));
+      }));
 
-  const uniqueItems = allItems.filter((item, index, self) =>
-    index === self.findIndex(t => t.id === item.id)
-  );
+    // B. Create Signatures for Deduplication
+    const backendSignatures = new Set(
+      backendMapped.map(item => {
+        const name = (item.resumeName || '').trim().toLowerCase();
+        const role = (item.resumeData?.targetJobRole || '').trim().toLowerCase();
+        const dateStr = item.date ? new Date(item.date).toDateString() : '';
+        return `${name}|${role}|${dateStr}`; // stricter signature including date
+      })
+    );
 
-  const filteredAndSortedItems = uniqueItems
-    .filter(item => {
-      const resumeName = (item.resumeName || '').toString().toLowerCase();
-      const story = (item.story || '').toString().toLowerCase();
-      const jobRole = (item.resumeData?.targetJobRole || '').toString().toLowerCase();
-      const searchLower = (searchTerm || '').toLowerCase();
-
-      return resumeName.includes(searchLower) ||
-        story.includes(searchLower) ||
-        jobRole.includes(searchLower);
-    })
-    .sort((a, b) => {
-      if (sortBy === 'newest') return new Date(b.date || 0) - new Date(a.date || 0);
-      if (sortBy === 'oldest') return new Date(a.date || 0) - new Date(b.date || 0);
-      if (sortBy === 'name') return (a.resumeName || '').localeCompare(b.resumeName || '');
-      return 0;
+    // C. Filter Local Items
+    const localFiltered = historyItems.filter(item => {
+      const name = (item.resumeName || item.fileName || item.resumeData?.fileName || '').trim().toLowerCase();
+      const role = (item.resumeData?.targetJobRole || item.targetJobRole || '').trim().toLowerCase();
+      const dateStr = item.date ? new Date(item.date).toDateString() : '';
+      const signature = `${name}|${role}|${dateStr}`;
+      return !backendSignatures.has(signature);
     });
+
+    // D. Combine & Sort
+    const all = [...localFiltered, ...backendMapped].filter(item => !deletedItemIds.includes(item.id));
+
+    // Deduplicate by ID just in case
+    const unique = all.filter((item, index, self) =>
+      index === self.findIndex(t => t.id === item.id)
+    );
+
+    // Filter by Search
+    const searchLower = (searchTerm || '').toLowerCase();
+    const filtered = unique.filter(item => {
+      if (!searchLower) return true;
+      const name = (item.resumeName || '').toLowerCase();
+      const role = (item.resumeData?.targetJobRole || '').toLowerCase();
+      return name.includes(searchLower) || role.includes(searchLower);
+    });
+
+    // Sort
+    let sorted = [...filtered];
+    if (sortBy === 'newest') {
+      sorted.sort((a, b) => new Date(b.date) - new Date(a.date));
+    } else if (sortBy === 'oldest') {
+      sorted.sort((a, b) => new Date(a.date) - new Date(b.date));
+    } else if (sortBy === 'name') {
+      sorted.sort((a, b) => (a.resumeName || '').localeCompare(b.resumeName || ''));
+    }
+
+    return sorted;
+  }, [historyItems, backendResumes, searchTerm, sortBy, deletedItemIds]);
+
+  // Check if user has ANY history (before search filter)
+  const hasAnyHistory = React.useMemo(() => {
+    const backendMapped = backendResumes
+      .filter(resume => resume.atsScore || (resume.analysis && Object.keys(resume.analysis).length > 0) || resume.analyzedAt);
+    const all = [...historyItems, ...backendMapped].filter(item => !deletedItemIds.includes(item.id));
+    return all.length > 0;
+  }, [historyItems, backendResumes, deletedItemIds]);
 
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
@@ -118,14 +154,49 @@ const History = ({ historyItems, onViewItem }) => {
 
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = filteredAndSortedItems.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(filteredAndSortedItems.length / itemsPerPage);
+  const currentItems = processedItems.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(processedItems.length / itemsPerPage);
 
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
-  const handleViewItem = (item) => {
-    onViewItem(item);
-    navigate('/generate', { state: { historicalData: item } });
+  const handleViewItem = async (item) => {
+    if (item.fromBackend) {
+      try {
+        setLoadingItemId(item.id);
+        const response = await getResume(item.id);
+
+        if (response.success && response.resume) {
+          // Construct a full item object similar to local history but with fresh backend data
+          const fullItem = {
+            ...item,
+            resumeData: {
+              ...response.resume,
+              // Map backend fields to what frontend expects
+              analysis: response.resume.aiAnalysis // ensure analysis is accessible
+            },
+            analysis: response.resume.aiAnalysis,
+            story: response.resume.achievements?.join('\n') || '' // restore story/achievements if applicable
+          };
+
+          onViewItem(fullItem);
+          navigate('/generate', { state: { historicalData: fullItem } });
+        } else {
+          console.error('Failed to load full resume details');
+          // Fallback: try navigating with what we have (might show incomplete data)
+          onViewItem(item);
+          navigate('/generate', { state: { historicalData: item } });
+        }
+      } catch (error) {
+        console.error('Error fetching resume details:', error);
+        alert('Could not load analysis details. Check your connection.');
+      } finally {
+        setLoadingItemId(null);
+      }
+    } else {
+      // Local items already have full data
+      onViewItem(item);
+      navigate('/generate', { state: { historicalData: item } });
+    }
   };
 
   /* Delete Modal Handlers */
@@ -145,18 +216,46 @@ const History = ({ historyItems, onViewItem }) => {
 
     // 2. Remove from DOM after animation
     setTimeout(async () => {
+      // Optimistically update local state to reflect deletion immediately
       setDeletedItemIds(prev => [...prev, itemToDelete]);
 
       try {
-        const updatedLocalItems = historyItems.filter(item => item.id !== itemToDelete && !item.fromBackend);
-        localStorage.setItem('storyHistory', JSON.stringify(updatedLocalItems));
+        const itemToRemove = processedItems.find(item => item.id === itemToDelete);
 
-        const itemToRemove = allItems.find(item => item.id === itemToDelete);
+        // Critical Fix: Also remove from backendResumes state so it doesn't reappear on re-render/refresh
         if (itemToRemove?.fromBackend) {
-          await fetch(`${API_BASE_URL}/api/resume/${itemToDelete}`, {
-            method: 'DELETE'
-          });
+          setBackendResumes(prev => prev.filter(r => (r.resumeId || r._id) !== itemToDelete));
+
+          // Use authenticated delete helper
+          await deleteResume(itemToDelete);
+
+          // SUPER CRITICAL FIX: Also delete the "shadow" copy in localStorage if it exists.
+          // The local copy might have a different ID but same signature (Name + Role + Date).
+          if (itemToRemove) {
+            const name = (itemToRemove.resumeName || '').trim().toLowerCase();
+            const role = (itemToRemove.resumeData?.targetJobRole || '').trim().toLowerCase();
+            // Filter out any local item that matches this signature (Name + Role)
+            // IGNORING DATE to ensure we catch shadow copies created at different times
+            const shadowItem = historyItems.find(localItem => {
+              const lName = (localItem.resumeName || localItem.fileName || localItem.resumeData?.fileName || '').trim().toLowerCase();
+              const lRole = (localItem.resumeData?.targetJobRole || localItem.targetJobRole || '').trim().toLowerCase();
+              return (lName === name) && (lRole === role);
+            });
+
+            // If we found a shadow item, ask parent (App.js) to delete it correctly
+            if (shadowItem && onDeleteItem) {
+              console.log('Deleting shadow copy:', shadowItem.id);
+              onDeleteItem(shadowItem.id);
+            }
+          }
+
+        } else {
+          // Standard local item deletion logic - delegate to Parent (App.js)
+          if (onDeleteItem) {
+            onDeleteItem(itemToDelete);
+          }
         }
+
       } catch (error) {
         console.error('Error deleting resume:', error);
         alert('Failed to delete resume. Sync error.');
@@ -171,7 +270,6 @@ const History = ({ historyItems, onViewItem }) => {
     setItemToDelete(null);
   };
 
-
   const handleDownloadReport = (item, e) => {
     e.stopPropagation();
     setMenuOpenId(null);
@@ -179,7 +277,7 @@ const History = ({ historyItems, onViewItem }) => {
       const jobRole = item.resumeData?.targetJobRole || 'Not Specified';
       const resumeName = item.resumeName || 'Resume';
       const analysisData = item.analysis || {};
-      const achievements = item.story || ''; // Assuming 'story' holds achievements or relevant content
+      const achievements = item.story || '';
 
       generateCompleteReport(analysisData, jobRole, resumeName, achievements);
       console.log('✅ Report downloaded successfully');
@@ -188,7 +286,6 @@ const History = ({ historyItems, onViewItem }) => {
       alert('Failed to download report. Please try again.');
     }
   };
-
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -216,18 +313,25 @@ const History = ({ historyItems, onViewItem }) => {
     );
   }
 
-  if (!uniqueItems || uniqueItems.length === 0) {
+  if (!hasAnyHistory) {
     return (
       <div className="history-page">
-
-
         <div className="history-container">
           <div className="empty-state">
-            <MdHistory className="empty-icon" style={{ fontSize: '72px', color: '#cbd5e1' }} />
-            <h2>No History Yet</h2>
-            <p>Your resume analyses will appear here after you analyze your first resume.</p>
-            <button className="btn-primary" onClick={() => navigate('/')} style={{ margin: '0 auto' }}>
-              <MdAdd /> Analyze Your First Resume
+            <div className="empty-illustration">
+              <MdHistory className="empty-icon" />
+              <div className="empty-particles">
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
+            </div>
+            <h2>Your Journey Starts Here</h2>
+            <p>No analyses yet. Upload your first resume and let AI help you land your dream job!</p>
+            <button className="btn-primary-enhanced" onClick={() => navigate('/')}>
+              <MdAdd style={{ fontSize: '20px' }} />
+              <span>Analyze Your First Resume</span>
+              <div className="btn-glow"></div>
             </button>
           </div>
         </div>
@@ -241,12 +345,20 @@ const History = ({ historyItems, onViewItem }) => {
       <div className="history-container">
         {/* Header */}
         <div className="history-header">
-          <div>
+          <div className="header-content">
             <h1>Analysis History</h1>
-            <p className="subtitle">Your saved resume analyses • {filteredAndSortedItems.length} items</p>
+            <p className="subtitle">
+              <span className="stat-badge">
+                <MdHistory style={{ fontSize: '14px' }} />
+                {processedItems.length} {processedItems.length === 1 ? 'Analysis' : 'Analyses'}
+              </span>
+              <span className="stat-text">Your personalized career insights</span>
+            </p>
           </div>
-          <button className="btn-primary" onClick={() => navigate('/')}>
-            <MdAdd style={{ fontSize: '18px' }} /> Analyze New Resume
+          <button className="btn-primary-enhanced" onClick={() => navigate('/')}>
+            <MdAdd style={{ fontSize: '20px' }} />
+            <span>Analyze New Resume</span>
+            <div className="btn-glow"></div>
           </button>
         </div>
 
@@ -286,20 +398,31 @@ const History = ({ historyItems, onViewItem }) => {
 
         {/* History Items Grid */}
         <div className="history-grid">
-          {currentItems.map((item) => (
+          {currentItems.map((item, index) => (
             <div
               key={item.id}
-              className={`history-card ${exitingItems.includes(item.id) ? 'exiting' : ''}`}
-              onClick={() => handleViewItem(item)}
-              style={{ zIndex: menuOpenId === item.id ? 10 : 1 }}
+              className={`history-card ${exitingItems.includes(item.id) ? 'exiting' : ''} ${loadingItemId === item.id ? 'loading' : ''}`}
+              onClick={() => !loadingItemId && handleViewItem(item)}
+              style={{
+                zIndex: menuOpenId === item.id ? 10 : 1,
+                cursor: loadingItemId ? 'wait' : 'pointer',
+                opacity: (loadingItemId && loadingItemId !== item.id) ? 0.7 : 1, // Dim other items
+                /* Staggered Animation Delay for Smooth Entry */
+                animation: `slideUpFade 0.5s ease backwards ${index * 0.08}s`
+              }}
             >
-              {/* Column 1: Name and Date */}
-              <div className="card-header">
-                <h3>{item.resumeName || 'Untitled Resume'}</h3>
-                <p className="date">{item.date ? formatDate(item.date) : 'No date'}</p>
+              {/* Date Badge - Top Left */}
+              <div className="card-date-badge">
+                <MdCalendarToday style={{ fontSize: '12px', marginRight: '4px' }} />
+                <span>{item.date ? formatDate(item.date) : 'No date'}</span>
               </div>
 
-              {/* Column 2: Job Role */}
+              {/* Resume Name */}
+              <div className="card-name">
+                <h3>{item.resumeName || 'Untitled Resume'}</h3>
+              </div>
+
+              {/* Job Role - Centered */}
               <div className="job-role">
                 <div style={{ padding: '4px', background: '#f0fdf4', borderRadius: '6px', display: 'flex' }}>
                   <MdWork className="role-icon" />
@@ -359,9 +482,6 @@ const History = ({ historyItems, onViewItem }) => {
 
                   {menuOpenId === item.id && (
                     <div className="menu-dropdown">
-                      <button className="menu-option" onClick={(e) => handleDownloadReport(item, e)}>
-                        <MdDownload style={{ fontSize: '16px' }} /> Download Report
-                      </button>
                       <button className="menu-option delete-option" onClick={(e) => handleDeleteClick(item.id, e)}>
                         <MdDelete style={{ fontSize: '16px' }} /> Delete Analysis
                       </button>
@@ -374,7 +494,7 @@ const History = ({ historyItems, onViewItem }) => {
         </div>
 
         {/* Pagination Controls */}
-        {filteredAndSortedItems.length > itemsPerPage && (
+        {processedItems.length > itemsPerPage && (
           <div className="pagination">
             <button
               className="pagination-btn"
@@ -404,7 +524,7 @@ const History = ({ historyItems, onViewItem }) => {
           </div>
         )}
 
-        {filteredAndSortedItems.length === 0 && searchTerm && (
+        {processedItems.length === 0 && searchTerm && (
           <div className="empty-state">
             <MdSearch className="empty-icon" />
             <h3>No Results Found</h3>

@@ -18,6 +18,13 @@ const resumeSchema = new mongoose.Schema({
     required: true
   },
 
+  // Owner of the resume
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: false // Optional for now to support guest/legacy data
+  },
+
   // Raw extracted and cleaned text content (REQUIRED for new flow)
   extractedText: {
     type: String,
@@ -217,13 +224,13 @@ resumeSchema.index({ targetJobRole: 1 });
 resumeSchema.index({ processingStatus: 1 });
 
 // Pre-save middleware to update lastUpdated (keep this)
-resumeSchema.pre('save', function(next) {
+resumeSchema.pre('save', function (next) {
   this.lastUpdated = new Date();
   next();
 });
 
 // Pre-validate middleware to normalize ATS level before enum validation
-resumeSchema.pre('validate', function(next) {
+resumeSchema.pre('validate', function (next) {
   if (this.aiAnalysis && this.aiAnalysis.atsScore) {
     const s = this.aiAnalysis.atsScore.score;
     const lvl = this.aiAnalysis.atsScore.level;
@@ -233,7 +240,7 @@ resumeSchema.pre('validate', function(next) {
 });
 
 // Virtual for formatted file size (keep this)
-resumeSchema.virtual('formattedFileSize').get(function() {
+resumeSchema.virtual('formattedFileSize').get(function () {
   const bytes = this.fileSize;
   if (bytes === 0) return '0 Bytes';
   const k = 1024;
@@ -243,7 +250,7 @@ resumeSchema.virtual('formattedFileSize').get(function() {
 });
 
 // Method to check if resume is fully processed (keep this, adjust if needed)
-resumeSchema.methods.isFullyProcessed = function() {
+resumeSchema.methods.isFullyProcessed = function () {
   // Consider fully processed when AI analysis is complete
   return this.processingStatus === 'completed' && this.aiAnalysis && this.analyzedAt;
   // Alternative check based only on status:
@@ -251,7 +258,7 @@ resumeSchema.methods.isFullyProcessed = function() {
 };
 
 // Static method to find resumes by job role (keep this)
-resumeSchema.statics.findByJobRole = function(jobRole) {
+resumeSchema.statics.findByJobRole = function (jobRole) {
   return this.find({ targetJobRole: new RegExp(jobRole, 'i') });
 };
 
