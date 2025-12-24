@@ -830,42 +830,44 @@ const StoryGeneration = ({ resumeData, onSaveToHistory, onBack }) => {
             </div>
           ) : (
             <div className="animate-swap" key="scores">
-              {/* SECONDARY SCORE: JD MATCH SCORE */}
-              <div className={`score-circle-container sidebar-version ${getLevel(animatedKeyword).toLowerCase()}`} style={{
-                marginBottom: '20px',
-                background: '#ffffff',
-                border: '1px solid transparent',
-                borderRadius: '24px',
-                padding: '24px',
-                boxShadow: animatedKeyword >= 80 ? '0 8px 20px -4px rgba(16, 185, 129, 0.15)' : animatedKeyword >= 50 ? '0 8px 20px -4px rgba(245, 158, 11, 0.15)' : '0 8px 20px -4px rgba(239, 68, 68, 0.15)'
-              }}>
-                <div className="score-circle-wrapper">
-                  <svg viewBox="0 0 36 36" className="circular-chart">
-                    <path className="circle-bg"
-                      d="M18 2.0845
+              {/* SECONDARY SCORE: JD MATCH SCORE - Only show if JD was provided */}
+              {resumeData?.hasJobDescription && (
+                <div className={`score-circle-container sidebar-version ${getLevel(animatedKeyword).toLowerCase()}`} style={{
+                  marginBottom: '20px',
+                  background: '#ffffff',
+                  border: '1px solid transparent',
+                  borderRadius: '24px',
+                  padding: '24px',
+                  boxShadow: animatedKeyword >= 80 ? '0 8px 20px -4px rgba(16, 185, 129, 0.15)' : animatedKeyword >= 50 ? '0 8px 20px -4px rgba(245, 158, 11, 0.15)' : '0 8px 20px -4px rgba(239, 68, 68, 0.15)'
+                }}>
+                  <div className="score-circle-wrapper">
+                    <svg viewBox="0 0 36 36" className="circular-chart">
+                      <path className="circle-bg"
+                        d="M18 2.0845
                         a 15.9155 15.9155 0 0 1 0 31.831
                         a 15.9155 15.9155 0 0 1 0 -31.831"
-                    />
-                    <path className="circle"
-                      strokeDasharray={`${animatedKeyword}, 100`}
-                      d="M18 2.0845
+                      />
+                      <path className="circle"
+                        strokeDasharray={`${animatedKeyword}, 100`}
+                        d="M18 2.0845
                         a 15.9155 15.9155 0 0 1 0 31.831
                         a 15.9155 15.9155 0 0 1 0 -31.831"
-                    />
-                    <text x="18" y="20.35" className="percentage">{animatedKeyword}</text>
-                  </svg>
-                </div>
-                <div className="score-text-content">
-                  <div className="score-level">{getLevel(animatedKeyword).toUpperCase()}</div>
-                  <div className="score-badge">
-                    JD MATCH SCORE
-                    <div className="tooltip-container" style={{ marginLeft: '6px', display: 'inline-flex', alignItems: 'center' }}>
-                      <MdHelpOutline className="info-icon-fixed" />
-                      <span className="tooltip-text">How well your resume matches the Job Description (JD) in terms of required skills and keywords. Higher score = better fit for the target role. (0-100)</span>
+                      />
+                      <text x="18" y="20.35" className="percentage">{animatedKeyword}</text>
+                    </svg>
+                  </div>
+                  <div className="score-text-content">
+                    <div className="score-level">{getLevel(animatedKeyword).toUpperCase()}</div>
+                    <div className="score-badge">
+                      JD MATCH SCORE
+                      <div className="tooltip-container" style={{ marginLeft: '6px', display: 'inline-flex', alignItems: 'center' }}>
+                        <MdHelpOutline className="info-icon-fixed" />
+                        <span className="tooltip-text">How well your resume matches the Job Description (JD) in terms of required skills and keywords. Higher score = better fit for the target role. (0-100)</span>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
+              )}
 
               <div className="rail-card">
                 <div className="rail-title" style={{ borderLeft: '3px solid var(--accent-primary)', paddingLeft: '12px' }}>Priority Issues</div>

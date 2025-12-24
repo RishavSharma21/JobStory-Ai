@@ -99,7 +99,7 @@ const Contact = ({ user }) => {
                 </div>
                 <div className="info-text">
                   <h3>Address</h3>
-                  <p>Punjab, India, 140401</p>
+                  <p>Ctrl + C, Ctrl + V Street, CopyPaste Nagar</p>
                 </div>
               </div>
 
@@ -112,7 +112,12 @@ const Contact = ({ user }) => {
                 </div>
               </div>
 
-              <a href="mailto:jobstory.ai@gmail.com" className="info-item" style={{ textDecoration: 'none', color: 'inherit', display: 'flex' }}>
+
+              <a
+                href="mailto:jobstory.ai@gmail.com"
+                className="info-item email-link"
+                style={{ textDecoration: 'none', color: 'inherit', display: 'flex' }}
+              >
                 <div className="icon-box">
                   <MdEmail />
                 </div>
@@ -123,9 +128,9 @@ const Contact = ({ user }) => {
             </div>
 
             <div className="social-row">
-              <a href="#" target="_blank" rel="noopener noreferrer"><FaLinkedin /></a>
-              <a href="#" target="_blank" rel="noopener noreferrer"><FaTwitter /></a>
-              <a href="#" target="_blank" rel="noopener noreferrer"><FaInstagram style={{ fontSize: '1.2em' }} /></a>
+              <a href="javascript:void(0)" style={{ cursor: 'not-allowed', opacity: 0.5 }} onClick={(e) => e.preventDefault()}><FaLinkedin /></a>
+              <a href="javascript:void(0)" style={{ cursor: 'not-allowed', opacity: 0.5 }} onClick={(e) => e.preventDefault()}><FaTwitter /></a>
+              <a href="javascript:void(0)" style={{ cursor: 'not-allowed', opacity: 0.5 }} onClick={(e) => e.preventDefault()}><FaInstagram style={{ fontSize: '1.2em' }} /></a>
             </div>
           </div>
 

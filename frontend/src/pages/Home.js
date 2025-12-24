@@ -206,7 +206,9 @@ const Home = ({ onResumeUpload, setJobRole, onGenerateStory, onSaveToHistory, us
         ...userResume,      // Contains fileUrl, fileName, etc.
         ...analysisResult,  // Contains new analysis data
         // Ensure analysis object is correctly structured
-        analysis: analysisResult.analysis || analysisResult.aiAnalysis || analysisResult
+        analysis: analysisResult.analysis || analysisResult.aiAnalysis || analysisResult,
+        // Add flag to indicate if JD was provided
+        hasJobDescription: !!(jobDescription && jobDescription.trim())
       };
 
       onGenerateStory(combinedData, jobRoleInput);

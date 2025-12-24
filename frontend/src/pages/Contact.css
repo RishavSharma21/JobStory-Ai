@@ -27,7 +27,7 @@
   left: 0;
   width: 100%;
   height: 100%;
-  pointer-events: none;
+  pointer-events: none !important;
   z-index: 0;
 }
 
@@ -133,6 +133,28 @@
   line-height: 1.6;
   margin: 0;
 }
+
+/* Email link specific styling */
+a.info-item.email-link {
+  cursor: pointer !important;
+  position: relative;
+  z-index: 1000;
+  transition: all 0.3s ease;
+}
+
+a.info-item.email-link:hover {
+  transform: translateX(2px);
+}
+
+a.info-item.email-link:hover .info-text h3 {
+  color: #10b981 !important;
+  text-decoration: underline !important;
+}
+
+a.info-item.email-link:active {
+  transform: scale(0.98);
+}
+
 
 /* Social Row - Compacted */
 .social-row {
