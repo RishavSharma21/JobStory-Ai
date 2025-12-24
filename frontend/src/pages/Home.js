@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AIAnalysisLoader from "../components/AIAnalysisLoader";
+import ToastNotification from "../components/ToastNotification";
 import { uploadResume, analyzeResume } from "../utils/api";
 import {
   FaRocket,
@@ -35,6 +36,32 @@ const Home = ({ onResumeUpload, setJobRole, onGenerateStory, onSaveToHistory, us
   const [fileName, setFileName] = useState(userResume?.fileName || "");
   const [isUploading, setIsUploading] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+  // Toast notification state
+  const [toast, setToast] = useState({
+    isOpen: false,
+    type: 'error',
+    title: '',
+    message: '',
+    suggestion: '',
+    duration: 6000
+  });
+
+  const showToast = (message, type = 'error', title = '', suggestion = '') => {
+    setToast({
+      isOpen: true,
+      type,
+      title,
+      message,
+      suggestion,
+      duration: 6000
+    });
+  };
+
+  const closeToast = () => {
+    setToast(prev => ({ ...prev, isOpen: false }));
+  };
+
   const navigate = useNavigate();
 
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -237,7 +264,22 @@ const Home = ({ onResumeUpload, setJobRole, onGenerateStory, onSaveToHistory, us
       navigate('/generate');
     } catch (error) {
       console.error('❌ Analysis failed:', error);
-      alert('AI analysis failed: ' + error.message);
+
+      // Display detailed validation error if available
+      let errorMessage = 'AI analysis failed';
+      if (error.message) {
+        errorMessage = error.message;
+
+        // If error message mentions "Invalid", show more context
+        if (error.message.includes('Invalid') || error.message.includes('validation')) {
+          errorMessage = `⚠️ Validation Error\n\n${error.message}\n\n💡 Tip: ${error.message.includes('Resume')
+            ? 'Please upload a valid resume with Education, Experience, and Skills sections.'
+            : 'Please provide a detailed job description (50+ words) or leave it empty if you don\'t have one.'
+            }`;
+        }
+      }
+
+      showToast(errorMessage, 'error', 'Validation Error', '');
     } finally {
       setIsAnalyzing(false);
     }
@@ -279,7 +321,8 @@ const Home = ({ onResumeUpload, setJobRole, onGenerateStory, onSaveToHistory, us
       reader.readAsDataURL(file);
     } catch (error) {
       console.error('Upload error:', error);
-      alert(`Upload failed: ${error.message}`);
+      let msg = error.message || 'Upload failed';
+      showToast(msg, 'error', 'Upload Failed', '');
       setIsUploaded(false);
       setFileName("");
     } finally {
@@ -465,7 +508,7 @@ const Home = ({ onResumeUpload, setJobRole, onGenerateStory, onSaveToHistory, us
                               handleFileUpload(e.target.files[0]);
                             }
                           }}
-                          accept=".pdf,.doc,.docx"
+                          accept=".pdf,application/pdf"
                           className="file-input"
                           disabled={isUploading}
                         />
@@ -579,6 +622,9 @@ const Home = ({ onResumeUpload, setJobRole, onGenerateStory, onSaveToHistory, us
           </div>
         </div>
       </footer >
+
+      {/* Toast Notification */}
+      <ToastNotification toast={toast} onClose={closeToast} />
     </div >
   );
 };

@@ -8,8 +8,6 @@ import md5 from "../utils/md5";
 const Header = ({ user, onLogout, onLoginClick }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   // User state is now managed by parent
-  const [dropdownView, setDropdownView] = useState("main");
-  const [theme, setTheme] = useState("night");
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -60,19 +58,7 @@ const Header = ({ user, onLogout, onLoginClick }) => {
     };
   }, []);
 
-  useEffect(() => {
-    if (!isDropdownOpen) {
-      setTimeout(() => {
-        setDropdownView("main");
-      }, 300);
-    }
-  }, [isDropdownOpen]);
 
-  useEffect(() => {
-    document.body.className = '';
-    document.body.classList.add(`${theme}-theme`);
-    console.log(`Theme changed to: ${theme}`);
-  }, [theme]);
 
   // Helper to format name: First Name Only + Title Case (e.g. "RISHAV KUMAR" -> "Rishav")
   const getFormattedName = (fullName) => {
@@ -167,133 +153,94 @@ const Header = ({ user, onLogout, onLoginClick }) => {
           </div>
 
           <div className={`profile-dropdown ${isDropdownOpen ? "show" : ""} ${!user ? "logged-out" : ""}`}>
-            {dropdownView === "main" ? (
-              <>
-                <div className="dropdown-header">
-                  {user ? `Welcome, ${getFormattedName(user.name)}` : "Welcome Guest"}
-                </div>
-                <ul className="dropdown-menu">
-                  {user && (
-                    <>
-                      <li className="dropdown-item">
-                        <NavLink
-                          to="/"
-                          className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}
-                          end
-                          onClick={() => setIsDropdownOpen(false)}
-                        >
-                          <div className="dropdown-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <rect x="3" y="3" width="7" height="7"></rect>
-                              <rect x="14" y="3" width="7" height="7"></rect>
-                              <rect x="14" y="14" width="7" height="7"></rect>
-                              <rect x="3" y="14" width="7" height="7"></rect>
-                            </svg>
-                          </div>
-                          <span>Home</span>
-                        </NavLink>
-                      </li>
+            <>
+              <div className="dropdown-header">
+                {user ? `Welcome, ${getFormattedName(user.name)}` : "Welcome Guest"}
+              </div>
+              <ul className="dropdown-menu">
+                {user && (
+                  <>
+                    <li className="dropdown-item">
+                      <NavLink
+                        to="/"
+                        className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}
+                        end
+                        onClick={() => setIsDropdownOpen(false)}
+                      >
+                        <div className="dropdown-icon">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <rect x="3" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="14" width="7" height="7"></rect>
+                            <rect x="3" y="14" width="7" height="7"></rect>
+                          </svg>
+                        </div>
+                        <span>Home</span>
+                      </NavLink>
+                    </li>
 
-                      <li className="dropdown-item">
-                        <NavLink
-                          to="/history"
-                          className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}
-                          onClick={() => setIsDropdownOpen(false)}
-                        >
-                          <div className="dropdown-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <circle cx="12" cy="12" r="10"></circle>
-                              <polyline points="12,6 12,12 16,14"></polyline>
-                            </svg>
-                          </div>
-                          <span>My History</span>
-                        </NavLink>
-                      </li>
-                    </>
-                  )}
+                    <li className="dropdown-item">
+                      <NavLink
+                        to="/history"
+                        className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}
+                        onClick={() => setIsDropdownOpen(false)}
+                      >
+                        <div className="dropdown-icon">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12,6 12,12 16,14"></polyline>
+                          </svg>
+                        </div>
+                        <span>My History</span>
+                      </NavLink>
+                    </li>
+                  </>
+                )}
 
-                  {/* --- Minimal change below: wrap in div.nav-link for consistent layout --- */}
-                  <li className="dropdown-item" style={{ opacity: 0.5, cursor: 'not-allowed', pointerEvents: 'none' }}>
-                    <div className="nav-link">
+                <li className="dropdown-item">
+                  <NavLink
+                    to="/contact"
+                    className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}
+                    onClick={() => setIsDropdownOpen(false)}
+                  >
+                    <div className="dropdown-icon">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z"></path>
+                      </svg>
+                    </div>
+                    <span>Contact Us</span>
+                  </NavLink>
+                </li>
+
+                {user ? (
+                  <li className="dropdown-item">
+                    <div className="nav-link" onClick={handleClickLogout}>
                       <div className="dropdown-icon">
-                        {/* Lock Icon */}
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                          <polyline points="16 17 21 12 16 7"></polyline>
+                          <line x1="21" y1="12" x2="9" y2="12"></line>
                         </svg>
                       </div>
-                      <span>Theme</span>
+                      <span>Log Out</span>
                     </div>
                   </li>
-
+                ) : (
                   <li className="dropdown-item">
-                    <NavLink
-                      to="/contact"
-                      className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}
-                      onClick={() => setIsDropdownOpen(false)}
-                    >
+                    <div className="nav-link" onClick={handleLoginSignup}>
                       <div className="dropdown-icon">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z"></path>
+                          <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+                          <polyline points="10 17 15 12 10 7"></polyline>
+                          <line x1="15" y1="12" x2="3" y2="12"></line>
                         </svg>
                       </div>
-                      <span>Contact Us</span>
-                    </NavLink>
+                      <span>Sign Up / Log In</span>
+                    </div>
                   </li>
-
-                  {user ? (
-                    <li className="dropdown-item">
-                      <div className="nav-link" onClick={handleClickLogout}>
-                        <div className="dropdown-icon">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                            <polyline points="16 17 21 12 16 7"></polyline>
-                            <line x1="21" y1="12" x2="9" y2="12"></line>
-                          </svg>
-                        </div>
-                        <span>Log Out</span>
-                      </div>
-                    </li>
-                  ) : (
-                    <li className="dropdown-item">
-                      <div className="nav-link" onClick={handleLoginSignup}>
-                        <div className="dropdown-icon">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
-                            <polyline points="10 17 15 12 10 7"></polyline>
-                            <line x1="15" y1="12" x2="3" y2="12"></line>
-                          </svg>
-                        </div>
-                        <span>Sign Up / Log In</span>
-                      </div>
-                    </li>
-                  )}
-                  {/* --- End minimal change --- */}
-                </ul>
-              </>
-            ) : (
-              <div className="theme-menu">
-                <div className="theme-menu-header">
-                  <div className="back-arrow" onClick={() => setDropdownView("main")}>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <line x1="19" y1="12" x2="5" y2="12"></line>
-                      <polyline points="12 19 5 12 12 5"></polyline>
-                    </svg>
-                  </div>
-                  <span>Theme</span>
-                </div>
-                <div className="theme-options">
-                  <div className={`theme-option ${theme === 'day' ? 'active' : ''}`} onClick={() => setTheme('day')}>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
-                    <span>Day</span>
-                  </div>
-                  <div className={`theme-option ${theme === 'night' ? 'active' : ''}`} onClick={() => setTheme('night')}>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
-                    <span>Night</span>
-                  </div>
-                </div>
-              </div>
-            )}
+                )}
+              </ul>
+            </>
           </div>
         </div>
       </div>

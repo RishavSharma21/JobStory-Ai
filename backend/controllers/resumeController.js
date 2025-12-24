@@ -1,6 +1,7 @@
 // resumeController.js - Updated for simplified text extraction and AI processing
 
 const Resume = require('../models/Resume');
+const { validateResume, validateJobDescription } = require('../utils/contentValidator');
 // --- UPDATED IMPORT: Import the correct function from the renamed file ---
 // Assuming pdfParser.js is in ../services/ and exports extractTextFromFile
 const { extractTextFromFile } = require('../services/pdfParser');
@@ -25,11 +26,16 @@ async function uploadResume(req, res) {
     }
 
     // Validate file type (PDF only)
-    // Note: pdfParser.js will also validate this
-    if (req.file.mimetype !== 'application/pdf') {
+    // Check both MIME type and file extension for security
+    const isPdfMimeType = req.file.mimetype === 'application/pdf';
+    const isPdfExtension = req.file.originalname.toLowerCase().endsWith('.pdf');
+
+    if (!isPdfMimeType || !isPdfExtension) {
       return res.status(400).json({
         error: 'Invalid file type',
-        message: 'Only PDF files are supported'
+        message: 'Only PDF files are supported. Please upload a file with .pdf extension.',
+        receivedType: req.file.mimetype,
+        receivedName: req.file.originalname
       });
     }
 
@@ -69,6 +75,23 @@ async function uploadResume(req, res) {
         message: 'Could not extract readable text from the PDF. Please ensure the PDF contains selectable text.'
       });
     }
+
+    // **NEW: Validate resume content**
+    console.log('🔍 Validating resume content...');
+    const resumeValidation = validateResume(extractedText);
+
+    if (!resumeValidation.isValid) {
+      console.log('❌ Resume validation failed:', resumeValidation.reason);
+      return res.status(400).json({
+        error: 'Invalid Resume',
+        message: resumeValidation.reason,
+        confidence: resumeValidation.confidence,
+        suggestion: 'Please upload a valid resume containing sections like Education, Experience, Skills, and contact information.'
+      });
+    }
+
+    console.log(`✅ Resume validated (confidence: ${resumeValidation.confidence}%)`);
+
     // --- END OF UPDATED EXTRACTION ---
 
     // --- REMOVED: Old structuring logic ---
@@ -187,6 +210,26 @@ async function analyzeResume(req, res) {
         error: 'Resume text not available',
         message: 'Text needs to be extracted first. Please re-upload the resume.'
       });
+    }
+
+    // **NEW: Validate job description if provided**
+    if (jobDescription && jobDescription.trim()) {
+      console.log('🔍 Validating job description...');
+      const jdValidation = validateJobDescription(jobDescription);
+
+      if (!jdValidation.isValid && !jdValidation.isEmpty) {
+        console.log('❌ Job description validation failed:', jdValidation.reason);
+        return res.status(400).json({
+          error: 'Invalid Job Description',
+          message: jdValidation.reason,
+          confidence: jdValidation.confidence,
+          suggestion: 'Please provide a detailed job description including job requirements, responsibilities, and required skills. If you don\'t have a JD, you can skip it.'
+        });
+      }
+
+      if (jdValidation.isValid && !jdValidation.isEmpty) {
+        console.log(`✅ Job description validated (confidence: ${jdValidation.confidence}%)`);
+      }
     }
 
     // --- Placeholder for AI Integration ---

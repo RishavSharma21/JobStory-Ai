@@ -19,13 +19,26 @@ export const uploadResume = async (file, jobRole = '') => {
 
     if (!response.ok) {
       const errorData = await safeJson(response);
+
+      // If it's a validation error (400), throw it with details
+      if (response.status === 400) {
+        const validationMessage = errorData?.message || errorData?.error || 'Validation failed';
+        throw new Error(validationMessage);
+      }
+
+      // For other errors, throw generic message
       throw new Error(errorData?.error || 'Failed to upload resume');
     }
 
     return await response.json();
   } catch (err) {
-    // ... existing catch block ...
-    console.warn('[uploadResume] Backend unavailable, using mock upload response:', err?.message);
+    // If it's a validation error or client error, propagate it
+    if (err.message.includes('Resume') || err.message.includes('file') || err.message.includes('PDF')) {
+      throw err; // Throw validation errors to be shown to user
+    }
+
+    // Only use mock data for network errors
+    console.warn('[uploadResume] Network error, using mock upload response:', err?.message);
     return {
       success: true,
       message: 'Mock upload succeeded (backend offline/mock)',
@@ -52,16 +65,29 @@ export const analyzeResume = async (resumeId, jobRole, jobDescription = '') => {
         ...(jobDescription && { jobDescription })
       })
     });
-    // ... existing ...
+
     if (!response.ok) {
       const errorData = await safeJson(response);
+
+      // If it's a validation error (400), throw it with full details
+      if (response.status === 400) {
+        const validationMessage = errorData?.message || errorData?.error || 'Validation failed';
+        throw new Error(validationMessage);
+      }
+
+      // For other errors, throw with message
       throw new Error(errorData?.message || errorData?.error || `Analyze failed (${response.status})`);
     }
 
     return await response.json();
   } catch (err) {
-    // Fallback to local mock analysis for seamless UX during mock/offline
-    console.warn('[analyzeResume] Falling back to /mock-analysis.json due to:', err?.message);
+    // If it's a validation error, propagate it - DON'T use mock data
+    if (err.message.includes('Invalid') || err.message.includes('validation') || err.message.includes('short')) {
+      throw err; // Throw validation errors to be shown to user
+    }
+
+    // Only fallback to mock for network errors
+    console.warn('[analyzeResume] Network error, falling back to /mock-analysis.json:', err?.message);
     const mockRes = await fetch('/mock-analysis.json');
     if (!mockRes.ok) throw new Error('Failed to load mock analysis');
     const mockJson = await mockRes.json();

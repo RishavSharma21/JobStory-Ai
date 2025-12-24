@@ -5,20 +5,18 @@ const multer = require('multer');
 // Configure multer storage
 const storage = multer.memoryStorage(); // Store files in memory (RAM)
 
-// File filter - only allow certain file types
+// File filter - only allow PDF files
 const fileFilter = (req, file, cb) => {
-  // Allowed file types
-  const allowedTypes = [
-    'application/pdf',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // DOCX
-    'application/msword', // DOC
-    'text/plain' // TXT
-  ];
-  
-  if (allowedTypes.includes(file.mimetype)) {
-    cb(null, true); // Accept file
+  // Only allow PDF files
+  if (file.mimetype === 'application/pdf') {
+    // Additional check for file extension
+    if (file.originalname.toLowerCase().endsWith('.pdf')) {
+      cb(null, true); // Accept file
+    } else {
+      cb(new Error('File must have .pdf extension'), false);
+    }
   } else {
-    cb(new Error('Unsupported file type. Please upload PDF, DOC, DOCX, or TXT files.'), false);
+    cb(new Error('Only PDF files are supported. Please upload a resume in PDF format.'), false);
   }
 };
 
