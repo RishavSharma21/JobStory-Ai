@@ -41,14 +41,15 @@ const AuthModal = ({ isOpen, onClose, onSuccess }) => {
                 onClose();
 
             } catch (err) {
-                console.error(err);
-                setError('Google Sign-In Failed');
+                console.error('Google Login Error:', err);
+                setError(err.message || 'Google Sign-In Failed');
             } finally {
                 setLoading(false);
             }
         },
-        onError: () => {
-            setError('Google Sign-In Failed');
+        onError: (errorResponse) => {
+            console.error('Google Login Popup Error:', errorResponse);
+            setError(`Google Sign-In Failed: ${errorResponse?.error || 'Check console for details'}`);
             setLoading(false);
         }
     });

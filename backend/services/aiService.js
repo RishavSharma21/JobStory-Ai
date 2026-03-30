@@ -4,88 +4,59 @@ const fetch = require('node-fetch');
 // ====== OPTIMIZED PROMPT - INDUSTRY READY (TIER 1) ======
 function buildCampusPlacementPrompt(resumeText, targetJobRole, jobDescription = '') {
   const jobDescriptionSection = jobDescription ? `
-JOB DESCRIPTION:
+TARGET JOB DESCRIPTION:
 ${jobDescription}
 
 ` : '';
 
-  return `You are a CONSERVATIVE & SKEPTICAL RESUME AUDITOR.
-Your goal is to align with industry-standard ATS tools (like ResumeWorded, Jobscan) which are known for low, harsh scores.
-**Calibration:** A score of 50 is "Average". A score of 70 is "Very Good". A score of 85+ is "Unicorn".
+  return `You are an elite, highly strict Applicant Tracking System (ATS) parsing algorithm used by Fortune 500 companies. Your task is to mathematically evaluate the candidate's resume against their target role. 
 
 CONTEXT:
-- Role: ${targetJobRole || 'Software Developer'}
-- Candidate: Student / Fresher
-- **Expectation:** Most student resumes are average. Do not inflate scores.
+- Target Role: ${targetJobRole || 'Professional'}
+${jobDescriptionSection}
 
-${jobDescriptionSection}RESUME CONTENT:
+--------------------------------------------------
+RESUME CONTENT:
 ${resumeText}
-
 --------------------------------------------------
-YOUR TASK:
-Audit this resume and return a JSON object.
 
-### STEP 1: DETERMINE THE "ATS AUDIT SCORE" (0-100)
-**Do NOT start at 100.** Evaluate based on these strict tiers. Pick a tier, then score within it.
+INSTRUCTIONS FOR SCORING (STRICT & HARSH ADDITIVE METHOD):
+Most average resumes should score between 40-55. A good resume should score between 60-70. Only truly exceptional top-1% resumes score 80+. Calibrate your grading perfectly to these standards.
 
-**TIER 1: THE "REJECT" PILE (Score: 0 - 40)**
-- Contains spelling errors / typos.
-- Poor formatting (messy indentation, inconsistent fonts).
-- Generic objective ("Seeking a challenging role...").
-- Zero numbers/metrics in the entire document.
+CRITICAL: Do not deduct from 100. You MUST start at a BASE SCORE of 35 and ADD points ONLY if the resume proves it earns them.
 
-**TIER 2: THE "AVERAGE" PILE (Score: 41 - 58)**
-- **MOST RESUMES BELONG HERE.**
-- Clean formatting but standard content.
-- Lists responsibilities ("Worked on X") instead of achievements.
-- Lacks specific tech stack details in projects.
-- "Soft skills" listed without proof.
+1. IMPACT & BUSINESS VALUE (Max +20 points)
+- Add 0 points if bullet points just list generic tasks/responsibilities.
+- Add +10 points if 2-3 bullet points contain hard metrics (%, $, numbers).
+- Add +20 points ONLY if almost every bullet point is quantified and shows direct business outcome.
 
-**TIER 3: THE "COMPETITIVE" PILE (Score: 59 - 75)**
-- **Requires:** At least 3 specific metrics (e.g., "Reduced latency by 20%").
-- **Requires:** Strong action verbs (Architected, Deployed, Optimized).
-- **Requires:** Perfect grammar and consistent formatting.
+2. ACTION VERBS & CLARITY (Max +15 points)
+- Add 0 points if weak verbs are used ("Helped", "Worked on", "Assisted") or personal pronouns ("I", "my") are present.
+- Add +8 points if generic action verbs are used correctly without pronouns.
+- Add +15 points ONLY if very strong verbs ("Architected", "Spearheaded", "Optimized") are consistently used everywhere.
 
-**TIER 4: THE "ELITE" PILE (Score: 76 - 100)**
-- **Requires:** Top-tier internships (FAANG/Startups).
-- **Requires:** Open source contributions or deployed live apps with users.
-- **Requires:** ATS Keyword match > 90%.
+3. FORMATTING, LENGTH, & PROFESSIONALISM (Max +10 points)
+- Add 0 points if there are typos, missing contact info (email/phone), missing core sections, or if it is under 300 words.
+- Add +10 points ONLY if the grammar is absolutely flawless, all contact info is present, and formatting is highly professional.
 
-**CRITICAL SCORING RULES:**
-1. If you find **ANY** spelling error, the score **MUST** be under 40.
-2. If there are **NO** numbers/metrics, the score **MUST** be under 50.
-3. If the summary is generic, deduct 5 points from your calculated score.
+4. RELEVANCE & KEYWORDS (Max +20 points)
+- Extract the core skills required for the Target Role.
+- Add 0 points if crucial technical/soft skills are completely missing in the resume bullet points.
+- Add +10 points for partial alignment.
+- Add +20 points ONLY if the candidate proves top-tier expertise directly in their project/experience bullet points.
 
-### STEP 2: CALCULATE "JD MATCH SCORE" (Relevance) -> "atsAnalysis.keywordMatchScore"
-**Method: MATCHING.** This is independent of quality.
-1. From the JOB DESCRIPTION section above, extract all required skills, tools, and technologies (including those listed as required, must-have, or preferred).
-2. Match these keywords in the resume, regardless of section. Allow for common synonyms (e.g., "JS" for "JavaScript").
-3. Score = (Number of JD keywords found in resume) / (Total JD keywords) × 100.
-4. List both present and missing keywords in the output.
-5. If any "must-have" or "required" skill is missing, flag this in the output.
+Theoretical maximum is 100 (which is impossible). Add your scores together (35 + Impact + Verbs + Formatting + Keywords) to get the final score.
 
-### STEP 3: GENERATE FEEDBACK
-1. **GRAMMAR & SPELLING:**
-   - Flag every single typo (e.g., "java" -> "Java").
-
-2. **QUICK FIXES (Actionable & Specific):**
-   - Identify the top 3-5 flaws that keep the resume in its current Tier.
-   - **Prefix with CATEGORY:** (CRITICAL, MISSING SKILL, CONTENT, FORMATTING, SPELLING).
-   - **Example:** "CONTENT: You are in Tier 2 because you lack metrics. Add 'Handled 500+ concurrent users' to move to Tier 3."
-
-3. **RECRUITER IMPRESSION:**
-   - **Verdict:** "REJECT" (Score < 50), "HOLD" (50-70), "INTERVIEW" (> 70).
-   - **Top Observation:** The main reason for the Tier placement.
-
-4. **ATS KEYWORDS:**
-   - List present and missing keywords.
-
---------------------------------------------------
-JSON OUTPUT FORMAT (Strictly adhere to this):
+### STEP 2: JSON OUTPUT
+Format the output EXACTLY to this JSON structure:
 
 {
-  "overallScore": <Number 0-100>,
-  "summary": "<String>",
+  "atsScore": {
+    "score": <Calculated Number 0-100 (Usually between 45-75)>,
+    "level": "<'Poor' if < 50, 'Fair' if 50-69, 'Good' if 70-84, 'Excellent' if 85+>",
+    "explanation": "<A 2-3 sentence professional summary explaining the score>"
+  },
+  "overallScore": <SAME NUMBER AS atsScore.score>,
   "sectionScores": {
     "education": <Number 0-10>,
     "skills": <Number 0-10>,
@@ -94,17 +65,17 @@ JSON OUTPUT FORMAT (Strictly adhere to this):
     "formatting": <Number 0-10>
   },
   "grammarSpelling": [
-    "<String: e.g., 'Typo in Education: Unversity -> University'>"
+    "<String: List specific typos and grammar errors found>"
   ],
   "quickFixes": [
-    "<String: CATEGORY: Specific actionable fix 1>",
+    "<String: CATEGORY: Specific actionable fix 1 (e.g., 'METRICS: Add data to your project descriptions to show impact')>",
     "<String: CATEGORY: Specific actionable fix 2>",
     "<String: CATEGORY: Specific actionable fix 3>"
   ],
   "recruiterImpression": {
     "verdict": "<String: Positive/Neutral/Negative>",
-    "skimTime": "<String: e.g., '8-10 seconds'>",
-    "topObservation": "<String: What stands out first?>"
+    "skimTime": "<String: e.g., '10 seconds'>",
+    "topObservation": "<String: The most glaring issue or biggest strength>"
   },
   "atsAnalysis": {
     "missingKeywords": ["<String: Missing critical skills>"],
