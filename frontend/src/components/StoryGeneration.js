@@ -1,9 +1,86 @@
 import React, { useMemo, useRef, useState, useEffect } from 'react';
 // Using Material Design icon set for a consistent visual language
-import { MdSecurity, MdSpellcheck, MdFormatListBulleted, MdReportProblem, MdBuild, MdDownload, MdRefresh, MdDescription, MdAutoAwesome, MdPerson, MdCode, MdEditNote, MdLightbulb, MdRocket, MdLock, MdInfoOutline, MdClose, MdHelpOutline, MdWarning } from 'react-icons/md';
+import { MdSecurity, MdSpellcheck, MdFormatListBulleted, MdReportProblem, MdBuild, MdDownload, MdRefresh, MdDescription, MdAutoAwesome, MdPerson, MdCode, MdLightbulb, MdRocket, MdLock, MdInfoOutline, MdClose, MdHelpOutline, MdWarning } from 'react-icons/md';
 import './StoryGeneration.css';
 import './LoadingAndAccessibility.css';
 import { generateCompleteReport } from '../utils/pdfDownload';
+import { generateCoverLetter, generateInterviewQuestions } from '../utils/api';
+import { FaSpinner } from 'react-icons/fa';
+
+// Pre-mapped standard technical skills explanation & projects for rich tooltips
+const skillDetails = {
+  react: {
+    why: "Crucial for building highly interactive, component-driven user interfaces in modern web applications.",
+    project: "Refactor a dashboard using React Context/Redux and optimize performance with React.memo."
+  },
+  nodejs: {
+    why: "The industry standard for building highly scalable, asynchronous backend RESTful APIs.",
+    project: "Create a secure Express backend server with JWT auth and rate-limiting middleware."
+  },
+  python: {
+    why: "Extremely versatile language used for backend automation, web scraping, data pipelines, and AI models.",
+    project: "Write an automated script that scrapes job listings and triggers automated parsing routines."
+  },
+  sql: {
+    why: "Essential for robust relational data architecture, complex querying, and server indexing optimizations.",
+    project: "Design a database schema for an e-commerce platform and optimize query search speeds."
+  },
+  mongodb: {
+    why: "Leading NoSQL database ideal for high-speed indexing, flexible document schemas, and rapid scaling.",
+    project: "Build a document storage model that saves nested user settings with dynamic configurations."
+  },
+  typescript: {
+    why: "Prevents runtime bugs by introducing strict type definitions, streamlining collaboration on complex bases.",
+    project: "Convert a standard JavaScript utility library to TypeScript with full typing coverage."
+  },
+  aws: {
+    why: "Standard cloud provider required for scalable application deployment, secure hosting, and pipelines.",
+    project: "Deploy your application utilizing AWS S3 for storage and ECS/EC2 instances for compute."
+  },
+  docker: {
+    why: "Guarantees runtime consistency across local developer machines and cloud deployment instances.",
+    project: "Containerize your local client/server application using multi-stage Dockerfiles and compose."
+  },
+  git: {
+    why: "Universal standard for code versioning, team code review workflows, and clean code integration.",
+    project: "Set up a clean GitHub workflow with pull request templates and semantic release tagging."
+  },
+  kubernetes: {
+    why: "Crucial for automating orchestration, auto-scaling, and high availability of container clusters.",
+    project: "Draft a Kubernetes pod deployment manifest with health checks and load balanced services."
+  },
+  redux: {
+    why: "Enables predictable global state management across nested frontend components and workflows.",
+    project: "Implement global state using Redux Toolkit to sync real-time user selections."
+  },
+  graphql: {
+    why: "Optimizes client bandwidth by allowing precise data queries, preventing microservice over-fetching.",
+    project: "Build a unified GraphQL schema gateway stitching SQL database and external API services."
+  },
+  javascript: {
+    why: "The native programming language of the web, powering frontend logic and asynchronous processes.",
+    project: "Build an interactive dynamic dashboard using ES6 module architecture and vanilla DOM API."
+  },
+  css: {
+    why: "Required for pixel-perfect, accessible, and responsive user experiences matching layout targets.",
+    project: "Design a fully responsive, semantic CSS layout featuring CSS variables and grid systems."
+  },
+  html: {
+    why: "The foundation of web content. Critical for SEO discovery, browser structures, and accessibility standards.",
+    project: "Structure a web portal using semantic HTML5 tags satisfying WCAG 2.1 accessibility criteria."
+  }
+};
+
+const getSkillInfo = (skillName, jobRole) => {
+  const key = skillName.toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (skillDetails[key]) {
+    return skillDetails[key];
+  }
+  return {
+    why: `Frequently requested for ${jobRole} roles to align with modern industry standards and clean code architectures.`,
+    project: `Build a mini sandbox repository showcasing a clean modular implementation of ${skillName}.`
+  };
+};
 
 const StoryGeneration = ({ resumeData, onSaveToHistory, onBack }) => {
   // extracting resume data
@@ -192,13 +269,35 @@ const StoryGeneration = ({ resumeData, onSaveToHistory, onBack }) => {
   // Red flags from REAL AI data
   const redFlags = redFlagsList.length > 0 ? redFlagsList : (grammarSpelling.length > 0 ? grammarSpelling : ['No critical issues detected']);
 
-  // Bullet rewriter (local)
-  const [weakBullet, setWeakBullet] = useState('Worked on frontend');
-  const rewrites = useMemo(() => ([
-    'Developed and shipped 12+ responsive React components, improving LCP by 32%.',
-    'Implemented code-splitting and lazy loading, reducing bundle size by 28%.',
-    'Built reusable UI patterns and documentation, accelerating feature delivery by 20%.'
-  ]), []);
+
+
+  // Cover Letter Companion states
+  const [coverLetterText, setCoverLetterText] = useState('');
+  const [coverLetterTone, setCoverLetterTone] = useState('professional');
+  const [coverLetterLength, setCoverLetterLength] = useState('medium');
+  const [isGeneratingCL, setIsGeneratingCL] = useState(false);
+  const [clError, setClError] = useState('');
+
+  const handleGenerateCoverLetter = async () => {
+    setIsGeneratingCL(true);
+    setClError('');
+    try {
+      const result = await generateCoverLetter(
+        resumeData.resumeId || resumeData._id,
+        jobRole,
+        resumeData.extractedText || '',
+        coverLetterTone,
+        coverLetterLength
+      );
+      setCoverLetterText(result);
+    } catch (err) {
+      setClError('Failed to generate cover letter. Please try again.');
+    } finally {
+      setIsGeneratingCL(false);
+    }
+  };
+
+
 
   // Quick Fixes - Prioritize old data format if available, else fallback to action plan
   const quickFixesList = Array.isArray(analysisData?.quickFixes) && analysisData.quickFixes.length > 0
@@ -402,8 +501,10 @@ const StoryGeneration = ({ resumeData, onSaveToHistory, onBack }) => {
   const fixesRef = useRef(null);
   const skillsRef = useRef(null);
   const jdMatchRef = useRef(null);
-  const redFlagsRef = useRef(null);
+
   const sectionScoresRef = useRef(null);
+
+  const coverLetterRef = useRef(null);
 
   const [activeSection, setActiveSection] = useState('scores');
 
@@ -415,7 +516,7 @@ const StoryGeneration = ({ resumeData, onSaveToHistory, onBack }) => {
       { ref: grammarCardRef, id: 'grammar' },
       { ref: fixesRef, id: 'fixes' },
       { ref: skillsRef, id: 'skills' },
-      { ref: redFlagsRef, id: 'redflags' }
+      { ref: coverLetterRef, id: 'coverletter' }
     ];
 
     const observerOptions = {
@@ -546,7 +647,9 @@ const StoryGeneration = ({ resumeData, onSaveToHistory, onBack }) => {
             <button className={`nav-btn ${activeSection === 'grammar' ? 'active' : ''}`} onClick={() => scrollTo(grammarCardRef, 'grammar')} aria-label="Navigate to Grammar and Spelling section" aria-current={activeSection === 'grammar' ? 'page' : undefined}><MdSpellcheck aria-hidden="true" /> Grammar & Spelling</button>
             <button className={`nav-btn ${activeSection === 'fixes' ? 'active' : ''}`} onClick={() => scrollTo(fixesRef, 'fixes')} aria-label="Navigate to Quick Fixes section" aria-current={activeSection === 'fixes' ? 'page' : undefined}><MdBuild aria-hidden="true" /> Quick Fixes</button>
             <button className={`nav-btn ${activeSection === 'skills' ? 'active' : ''}`} onClick={() => scrollTo(skillsRef, 'skills')} aria-label="Navigate to Skill Gaps section" aria-current={activeSection === 'skills' ? 'page' : undefined}><MdDescription aria-hidden="true" /> Skill Gaps</button>
-            <button className={`nav-btn ${activeSection === 'redflags' ? 'active' : ''}`} onClick={() => scrollTo(redFlagsRef, 'redflags')} aria-label="Navigate to Recruiter Impression section" aria-current={activeSection === 'redflags' ? 'page' : undefined}><MdLightbulb aria-hidden="true" /> Recruiter Impression</button>
+
+
+            <button className={`nav-btn ${activeSection === 'coverletter' ? 'active' : ''}`} onClick={() => scrollTo(coverLetterRef, 'coverletter')} aria-label="Navigate to Cover Letter Companion section" aria-current={activeSection === 'coverletter' ? 'page' : undefined}><MdDescription aria-hidden="true" /> Cover Letter</button>
             {/* Main Action - Updated to open Modal */}
             <button className="btn-download" onClick={handleDownloadClick} aria-label="Download complete resume analysis report as PDF">
               <MdDownload size={20} aria-hidden="true" />
@@ -706,100 +809,213 @@ const StoryGeneration = ({ resumeData, onSaveToHistory, onBack }) => {
               <h2><MdDescription /> SKILL & KEYWORD GAPS</h2>
               <div className="score-explanation" style={{ marginBottom: 12, color: 'var(--text-muted)' }}>Boost your visibility with these key terms.</div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 20, marginBottom: 12 }}>
-                <div style={{ background: '#ffffff', borderRadius: '12px', padding: '16px', border: '1px solid transparent', boxShadow: '0 8px 16px -4px rgba(16, 185, 129, 0.12)' }}>
-                  <div style={{ fontSize: '0.85rem', fontWeight: '700', color: 'var(--accent-primary)', marginBottom: '8px', textTransform: 'uppercase' }}>✓ Strong Skills</div>
-                  <div style={{ fontSize: '0.95rem', color: 'var(--text-main)', lineHeight: '1.5' }}>{presentSkills.length > 0 ? presentSkills.join(', ') : 'No skills detected'}</div>
+                <div style={{ background: '#ffffff', borderRadius: '12px', padding: '24px', border: '1px solid rgba(16, 185, 129, 0.15)', boxShadow: '0 8px 16px -4px rgba(16, 185, 129, 0.12)' }}>
+                  <div style={{ fontSize: '0.85rem', fontWeight: '700', color: 'var(--accent-primary)', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>✓ Strong Skills</div>
+                  {presentSkills.length > 0 ? (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                      {presentSkills.map((skill, idx) => (
+                        <span key={idx} style={{
+                          padding: '6px 12px',
+                          borderRadius: '20px',
+                          background: '#ecfdf5',
+                          color: '#065f46',
+                          fontSize: '0.82rem',
+                          fontWeight: '600',
+                          border: '1px solid #a7f3d0'
+                        }}>
+                          ✓ {skill}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: '0.9rem', color: 'var(--text-dim)', fontStyle: 'italic' }}>No skills detected</div>
+                  )}
                 </div>
-                <div style={{ background: '#ffffff', borderRadius: '12px', padding: '16px', textAlign: 'center', border: '1px solid transparent', boxShadow: '0 8px 16px -4px rgba(239, 68, 68, 0.12)' }}>
-                  <div style={{ fontSize: '0.85rem', fontWeight: '700', color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase' }}>→ Missing Skills</div>
-                  <div style={{ fontSize: '0.95rem', color: 'var(--text-main)', lineHeight: '1.5' }}>{missingKeywords.length > 0 ? missingKeywords.join(', ') : 'All key skills present'}</div>
+                <div style={{ background: '#ffffff', borderRadius: '12px', padding: '24px', border: '1px solid rgba(245, 158, 11, 0.15)', boxShadow: '0 8px 16px -4px rgba(245, 158, 11, 0.12)' }}>
+                  <div style={{ fontSize: '0.85rem', fontWeight: '700', color: 'var(--status-fair)', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>→ Missing Skills</div>
+                  {missingKeywords.length > 0 ? (
+                    <div className="missing-skills-grid" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: 0, justifyContent: 'flex-start' }}>
+                      {missingKeywords.map((skill, idx) => {
+                        const info = getSkillInfo(skill, jobRole);
+                        return (
+                          <div key={idx} className="interactive-skill-chip-wrapper">
+                            <span className="interactive-skill-chip">
+                              ⚠ {skill}
+                            </span>
+                            <div className="skill-tooltip">
+                              <div className="skill-tooltip-header">
+                                💡 Why it matters
+                              </div>
+                              <div className="skill-tooltip-section">
+                                {info.why}
+                              </div>
+                              <div className="skill-tooltip-header" style={{ color: '#34d399', marginTop: '12px' }}>
+                                🛠️ Project Application
+                              </div>
+                              <div className="skill-tooltip-section">
+                                <strong>Try this:</strong> {info.project}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: '0.9rem', color: 'var(--text-dim)', fontStyle: 'italic' }}>All key skills present</div>
+                  )}
                   {missingKeywords.length > 0 && (
-                    <div style={{ marginTop: '10px', fontSize: '0.8rem', color: 'var(--text-dim)', fontStyle: 'italic' }}>
-                      * Frequently required for {jobRole} roles
+                    <div style={{ marginTop: '14px', fontSize: '0.8rem', color: 'var(--text-dim)', fontStyle: 'italic' }}>
+                      * Hover over any missing skill to reveal recruiter motivations and actionable project ideas.
                     </div>
                   )}
                 </div>
               </div>
             </div>
 
-            {/* 5) ATS Score Improvement (Legacy/Recruiter View) */}
-            {/* 5) Recruiter Impression (was ATS Improvement) */}
-            <div ref={redFlagsRef} id="redflags" className="analysis-card" style={{ scrollMarginTop: '100px' }}>
-              <h2><MdLightbulb /> RECRUITER IMPRESSION</h2>
-              <div className="score-explanation" style={{ marginBottom: '24px', color: 'var(--text-muted)' }}>How a human recruiter sees your resume</div>
 
-              <div className="recruiter-grid">
-                <div className="recruiter-card">
-                  <div className="recruiter-label">
-                    Est. Skim Time
-                    <div className="tooltip-container" style={{ marginLeft: '6px', display: 'inline-flex', alignItems: 'center' }}>
-                      {/* Info icon with tooltip */}
-                      <MdHelpOutline className="info-icon-fixed" />
-                      <span className="tooltip-text">Estimated time a recruiter spends scanning your resume (Target: 6-10s).</span>
-                    </div>
+
+
+
+            {/* 7) AI Cover Letter Companion */}
+            <div ref={coverLetterRef} id="coverletter" className="analysis-card" style={{ scrollMarginTop: '100px' }}>
+              <h2><MdDescription /> AI COVER LETTER COMPANION</h2>
+              <p className="score-explanation" style={{ marginBottom: 16 }}>
+                Generate a tailored, high-converting cover letter based on your resume and target role.
+              </p>
+
+              <div className="cl-controls" style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '20px' }}>
+                <div>
+                  <label style={{ fontSize: '0.85rem', fontWeight: '700', textTransform: 'uppercase', color: 'var(--text-muted)', display: 'block', marginBottom: '8px' }}>Tone of Voice</label>
+                  <div className="tone-chips" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                    {['professional', 'creative', 'bold', 'modern'].map(t => (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => setCoverLetterTone(t)}
+                        style={{
+                          padding: '8px 16px',
+                          borderRadius: '20px',
+                          border: coverLetterTone === t ? '2px solid var(--accent-primary)' : '1px solid var(--border-highlight)',
+                          background: coverLetterTone === t ? 'var(--accent-glow)' : '#ffffff',
+                          color: coverLetterTone === t ? 'var(--accent-primary)' : 'var(--text-muted)',
+                          fontSize: '0.85rem',
+                          fontWeight: '600',
+                          textTransform: 'capitalize',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        {t}
+                      </button>
+                    ))}
                   </div>
-                  <div className="recruiter-value">{recruiterImpression.skimTime || 'N/A'}</div>
                 </div>
-                <div className="recruiter-card">
-                  <div className="recruiter-label">First Impression</div>
-                  <div className={`recruiter-value status-${(recruiterImpression.verdict || 'neutral').toLowerCase()}`}>
-                    {recruiterImpression.verdict || 'Neutral'}
+
+                <div>
+                  <label style={{ fontSize: '0.85rem', fontWeight: '700', textTransform: 'uppercase', color: 'var(--text-muted)', display: 'block', marginBottom: '8px' }}>Length</label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <input
+                      type="range"
+                      min="0"
+                      max="2"
+                      value={coverLetterLength === 'short' ? 0 : coverLetterLength === 'medium' ? 1 : 2}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value);
+                        setCoverLetterLength(val === 0 ? 'short' : val === 1 ? 'medium' : 'long');
+                      }}
+                      style={{
+                        flex: 1,
+                        accentColor: 'var(--accent-primary)',
+                        cursor: 'pointer'
+                      }}
+                    />
+                    <span style={{ fontSize: '0.9rem', fontWeight: '600', width: '70px', textTransform: 'capitalize', color: 'var(--text-main)' }}>
+                      {coverLetterLength}
+                    </span>
                   </div>
                 </div>
+
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={handleGenerateCoverLetter}
+                  style={{
+                    padding: '12px 24px',
+                    borderRadius: '12px',
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    cursor: 'pointer',
+                    background: 'var(--accent-primary)',
+                    color: '#ffffff',
+                    border: 'none',
+                    fontWeight: '600',
+                    marginTop: '8px'
+                  }}
+                  disabled={isGeneratingCL}
+                >
+                  {isGeneratingCL ? (
+                    <>
+                      <FaSpinner className="spinner-icon" style={{ animation: 'spin 1s linear infinite' }} /> Generating...
+                    </>
+                  ) : (
+                    <>
+                      <MdAutoAwesome /> Generate Cover Letter
+                    </>
+                  )}
+                </button>
               </div>
 
-              {analysisData?.atsImprovement?.estimatedImprovement ? (
-                <>
-                  {/* Score Comparison - Clean & Professional */}
-                  <div className="score-comparison">
-                    <div className="score-block">
-                      <div className="score-label-small">Current</div>
-                      <div className="score-big">{analysisData.atsImprovement.estimatedImprovement.currentScore}</div>
-                    </div>
+              {clError && <p style={{ color: 'var(--status-poor)', fontSize: '0.85rem', marginBottom: '12px' }}>{clError}</p>}
 
-                    <div className="score-divider">
-                      <div className="divider-icon"><MdRocket /></div>
-                    </div>
-
-                    <div className="score-block">
-                      <div className="score-label-small highlight">Potential</div>
-                      <div className="score-big highlight">{analysisData.atsImprovement.estimatedImprovement.potentialScore}</div>
-                    </div>
+              {coverLetterText && (
+                <div className="cover-letter-output" style={{ marginTop: '20px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <label style={{ fontSize: '0.85rem', fontWeight: '700', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Generated Letter</label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(coverLetterText);
+                        alert('Cover letter copied to clipboard!');
+                      }}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: 'var(--accent-primary)',
+                        fontWeight: '600',
+                        fontSize: '0.85rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}
+                    >
+                      <MdRocket /> Copy Text
+                    </button>
                   </div>
-
-                  {/* Improvement List - Clean Cards */}
-                  <div className="improvement-list">
-                    {missingKeywords.length > 0 && (
-                      <div className="improvement-card">
-                        <div className="improvement-icon"><MdDescription /></div>
-                        <div className="improvement-content">
-                          <div className="improvement-title">Missing Keywords</div>
-                          <div className="improvement-desc">
-                            Add <span className="text-highlight">{missingKeywords.slice(0, 2).join(', ')}</span> and {missingKeywords.length - 2} others to match the job description.
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                    <div className="improvement-card">
-                      <div className="improvement-icon warn"><MdFormatListBulleted /></div>
-                      <div className="improvement-content">
-                        <div className="improvement-title">Formatting Issues</div>
-                        <div className="improvement-desc">
-                          Fix <span className="text-highlight">{analysisData?.formatIssues?.issues?.length || 3} layout problems</span> that might confuse ATS parsers.
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Premium Button - Professional Outline */}
-                  <button className="btn-premium">
-                    <MdLock className="premium-icon" />
-                    <span>Unlock Full Improvement Plan</span>
-                  </button>
-                </>
-              ) : null}
+                  <textarea
+                    value={coverLetterText}
+                    onChange={(e) => setCoverLetterText(e.target.value)}
+                    style={{
+                      width: '100%',
+                      height: '350px',
+                      padding: '16px',
+                      borderRadius: '12px',
+                      border: '1px solid var(--border-highlight)',
+                      fontSize: '0.95rem',
+                      fontFamily: 'inherit',
+                      lineHeight: '1.6',
+                      background: '#ffffff',
+                      color: 'var(--text-main)',
+                      resize: 'vertical',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+              )}
             </div>
-
 
           </div>
 

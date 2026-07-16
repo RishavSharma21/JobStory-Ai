@@ -239,31 +239,16 @@ export const generateCompleteReport = (analysisData, jobRole, resumeName, achiev
             </div>
         </div>
 
-        <!-- BREAKDOWN GRID -->
+        <!-- BREAKDOWN -->
         <h3>Detailed Breakdown</h3>
-        <div class="grid-2">
-           <div class="card">
-             <h4>Category Scores</h4>
-             <ul class="clean-list">
-               <li><span>Education</span> <span class="${(analysisData?.atsScore?.breakdown?.education || 0) > 7 ? 'highlight-green' : 'highlight-red'}">${analysisData?.atsScore?.breakdown?.education || 0}/10</span></li>
-               <li><span>Skills</span> <span class="${(analysisData?.atsScore?.breakdown?.skills || 0) > 7 ? 'highlight-green' : 'highlight-red'}">${analysisData?.atsScore?.breakdown?.skills || 0}/10</span></li>
-               <li><span>Experience</span> <span class="${(analysisData?.atsScore?.breakdown?.experience || 0) > 7 ? 'highlight-green' : 'highlight-red'}">${analysisData?.atsScore?.breakdown?.experience || 0}/10</span></li>
-               <li><span>Formatting</span> <span class="${(analysisData?.atsScore?.breakdown?.formatting || 0) > 7 ? 'highlight-green' : 'highlight-red'}">${analysisData?.atsScore?.breakdown?.formatting || 0}/10</span></li>
-             </ul>
-           </div>
-           
-           <div class="card">
-             <h4>Recruiter Impression</h4>
-             <p>"${analysisData?.recruiterInsights?.verdict || 'No verdict available.'}"</p>
-             <div style="margin-top: 15px;">
-                ${(analysisData?.recruiterInsights?.keyStrengths || []).slice(0, 2).map((s) =>
-    `<span style="display:block; margin-bottom:4px; font-size:13px;">✅ ${typeof s === 'string' ? s : s.text}</span>`
-  ).join('')}
-                ${(analysisData?.recruiterInsights?.concerningAreas || []).slice(0, 2).map((s) =>
-    `<span style="display:block; margin-bottom:4px; font-size:13px; color:#ef4444;">⚠️ ${typeof s === 'string' ? s : s.text}</span>`
-  ).join('')}
-             </div>
-           </div>
+        <div class="card">
+          <h4>Category Scores</h4>
+          <ul class="clean-list">
+            <li><span>Education</span> <span class="${(analysisData?.atsScore?.breakdown?.education || 0) > 7 ? 'highlight-green' : 'highlight-red'}">${analysisData?.atsScore?.breakdown?.education || 0}/10</span></li>
+            <li><span>Skills</span> <span class="${(analysisData?.atsScore?.breakdown?.skills || 0) > 7 ? 'highlight-green' : 'highlight-red'}">${analysisData?.atsScore?.breakdown?.skills || 0}/10</span></li>
+            <li><span>Experience</span> <span class="${(analysisData?.atsScore?.breakdown?.experience || 0) > 7 ? 'highlight-green' : 'highlight-red'}">${analysisData?.atsScore?.breakdown?.experience || 0}/10</span></li>
+            <li><span>Formatting</span> <span class="${(analysisData?.atsScore?.breakdown?.formatting || 0) > 7 ? 'highlight-green' : 'highlight-red'}">${analysisData?.atsScore?.breakdown?.formatting || 0}/10</span></li>
+          </ul>
         </div>
 
         <!-- CRITICAL ISSUES -->

@@ -115,10 +115,10 @@ class UniversalTextExtractor {
     const trimmedText = text.trim();
     if (trimmedText.length < this.minTextLength) return false;
 
-    // Check for reasonable character distribution
-    const alphaCount = (trimmedText.match(/[a-zA-Z]/g) || []).length;
-    const alphaRatio = alphaCount / trimmedText.length;
-    return alphaRatio > 0.3; // At least 30% alphabetic characters
+    // Check for reasonable character distribution using Unicode letters (multilingual support)
+    const letterCount = (trimmedText.match(/\p{L}/gu) || []).length;
+    const letterRatio = letterCount / trimmedText.length;
+    return letterRatio > 0.15; // Lowered to 15% to support resumes with high symbol/number densities
   }
 
   /**

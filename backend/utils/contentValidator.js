@@ -19,27 +19,27 @@ function validateResume(extractedText) {
     const text = extractedText.toLowerCase().trim();
     const wordCount = text.split(/\s+/).length;
 
-    // Minimum length check (resumes should have at least 100 words)
-    if (wordCount < 100) {
+    // Minimum length check (resumes should have at least 50 words)
+    if (wordCount < 50) {
         return {
             isValid: false,
             confidence: 0,
-            reason: 'Content too short. A resume typically contains at least 100 words.'
+            reason: 'Content too short. A resume typically contains at least 50 words.'
         };
     }
 
     // Layer 2: Keyword-based validation
     const resumeKeywords = {
         // Essential resume sections
-        sections: ['experience', 'education', 'skill', 'project', 'work', 'summary', 'objective'],
+        sections: ['experience', 'education', 'skill', 'project', 'work', 'summary', 'objective', 'achievement', 'publication', 'certif', 'about', 'profile', 'extracurricular'],
         // Educational terms
-        education: ['university', 'college', 'degree', 'bachelor', 'master', 'phd', 'diploma', 'graduate', 'gpa', 'cgpa'],
+        education: ['university', 'college', 'degree', 'bachelor', 'master', 'phd', 'diploma', 'graduate', 'gpa', 'cgpa', 'school', 'insti', 'academy', 'b.t', 'm.t', 'b.e', 'b.s', 'm.s', 'matric', 'education', 'studied'],
         // Contact information
-        contact: ['email', 'phone', 'linkedin', 'github', 'portfolio', 'contact'],
+        contact: ['email', 'phone', 'linkedin', 'github', 'portfolio', 'contact', 'address', 'mail', 'tel', 'mobile', '@'],
         // Work-related
-        work: ['company', 'intern', 'employ', 'position', 'role', 'responsibility', 'achieve'],
+        work: ['company', 'intern', 'employ', 'position', 'role', 'responsibility', 'achieve', 'experience', 'work', 'job', 'project', 'freelancer', 'developed', 'designed', 'built', 'managed'],
         // Technical skills
-        technical: ['programming', 'software', 'developer', 'engineer', 'technology', 'framework', 'language']
+        technical: ['programming', 'software', 'developer', 'engineer', 'technology', 'framework', 'language', 'skills', 'tools', 'database', 'git', 'java', 'python', 'javascript', 'html', 'css', 'react', 'node', 'sql', 'aws']
     };
 
     let matchCounts = {
@@ -66,18 +66,20 @@ function validateResume(extractedText) {
     const workMatches = matchCounts.work;
     const technicalMatches = matchCounts.technical;
 
-    // Resume validation criteria:
-    // 1. Must have at least 2 section keywords (experience, education, skills, etc.)
+    // Resume validation criteria (relaxed to prevent false negatives):
+    // 1. Must have at least 1 section keyword
     // 2. Must have at least 1 education OR work keyword
-    // 3. Should have contact information
+    // 3. Contact information is checked but doesn't block validity
 
-    const hasRequiredSections = sectionMatches >= 2;
+    const hasRequiredSections = sectionMatches >= 1;
     const hasEducationOrWork = (educationMatches + workMatches) >= 1;
     const hasContactInfo = contactMatches >= 1;
 
     // Calculate confidence percentage
     let confidence = 0;
-    if (hasRequiredSections) confidence += 40;
+    if (sectionMatches >= 2) confidence += 40;
+    else if (sectionMatches >= 1) confidence += 20;
+    
     if (hasEducationOrWork) confidence += 30;
     if (hasContactInfo) confidence += 20;
     if (technicalMatches > 0) confidence += 10;
@@ -91,9 +93,6 @@ function validateResume(extractedText) {
         }
         if (!hasEducationOrWork) {
             reasons.push('No educational background or work experience found');
-        }
-        if (!hasContactInfo) {
-            reasons.push('No contact information detected');
         }
 
         return {

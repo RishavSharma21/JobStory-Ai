@@ -29,11 +29,23 @@ app.use(cors());                           // Enable cross-origin requests
 app.use(express.json());                   // Parse JSON bodies
 app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies
 
-// Connect to MongoDB database (non-fatal on failure for mock/demo)
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/resume-analyzer')
+// Connect to MongoDB database with fallback
+const mongoURI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/resume-analyzer';
+mongoose.connect(mongoURI, {
+  serverSelectionTimeoutMS: 5000 // Fast timeout (5s) for quick fallback
+})
   .then(() => console.log('Connected to MongoDB'))
   .catch((err) => {
-    console.error('MongoDB connection error (continuing in mock mode if enabled):', err?.message || err);
+    console.error(`MongoDB connection error for ${mongoURI}:`, err?.message || err);
+    const fallbackURI = 'mongodb://127.0.0.1:27017/resume-analyzer';
+    if (mongoURI !== fallbackURI) {
+      console.log(`Attempting connection to local MongoDB fallback: ${fallbackURI}`);
+      mongoose.connect(fallbackURI, {
+        serverSelectionTimeoutMS: 5000
+      })
+        .then(() => console.log('Connected to local MongoDB fallback successfully'))
+        .catch((localErr) => console.error('Local MongoDB fallback also failed:', localErr?.message || localErr));
+    }
   });
 
 // Routes - load with safeguards so server doesn't crash on require errors

@@ -270,10 +270,12 @@ const Home = ({ onResumeUpload, setJobRole, onGenerateStory, onSaveToHistory, us
       if (error.message) {
         errorMessage = error.message;
 
-        // If error message mentions "Invalid", show more context
-        if (error.message.includes('Invalid') || error.message.includes('validation')) {
-          errorMessage = `⚠️ Validation Error\n\n${error.message}\n\n💡 Tip: ${error.message.includes('Resume')
-            ? 'Please upload a valid resume with Education, Experience, and Skills sections.'
+        const lowercaseMsg = error.message.toLowerCase();
+        // If error message mentions "Invalid", "validation" or "mock"
+        if (lowercaseMsg.includes('invalid') || lowercaseMsg.includes('validation') || lowercaseMsg.includes('mock')) {
+          const isResumeError = lowercaseMsg.includes('resume') || lowercaseMsg.includes('mock') || lowercaseMsg.includes('id');
+          errorMessage = `⚠️ Validation Error\n\n${error.message}\n\n💡 Tip: ${isResumeError
+            ? 'Please upload your resume again to initialize a valid session.'
             : 'Please provide a detailed job description (50+ words) or leave it empty if you don\'t have one.'
             }`;
         }

@@ -12,6 +12,22 @@ const { extractTextFromFile } = require('../services/pdfParser');
 // const { parsePdfFile, extractStructuredData } = require('../services/pdfParser');
 // const { processWithAI } = require('../services/aiService'); // Keep if used in analyzeResume
 
+// Helper to extract optional user ID from token
+function getOptionalUserId(req) {
+  const token = req.header('x-auth-token');
+  if (token) {
+    try {
+      const jwt = require('jsonwebtoken');
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+      return decoded.user?.id || decoded.user?._id || null;
+    } catch (err) {
+      console.warn('Invalid optional token decoded, proceeding as guest');
+    }
+  }
+  return null;
+}
+
+
 // Upload and parse resume (simplified for text extraction only)
 async function uploadResume(req, res) {
   try {
@@ -105,17 +121,8 @@ async function uploadResume(req, res) {
 
     // Create resume document - storing the extracted text for AI processing later
     // Check for optional auth token to associate upload with a user
-    let userId = null;
-    const token = req.header('x-auth-token');
-    if (token) {
-      try {
-        const jwt = require('jsonwebtoken');
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
-        userId = decoded.user.id;
-      } catch (err) {
-        console.warn('Invalid token during upload, proceeding as guest');
-      }
-    }
+    const userId = getOptionalUserId(req);
+
 
     const resumeData = {
       user: userId, // Associate with user if logged in
@@ -181,6 +188,12 @@ async function analyzeResume(req, res) {
     // Get resume ID from request parameters
     const { id } = req.params;
 
+    if (id && id.startsWith('mock-')) {
+      return res.status(400).json({
+        message: 'Mock session detected. Please re-upload your resume to initialize a new valid database session.'
+      });
+    }
+
     if (!id || !id.match(/^[0-9a-fA-F]{24}$/)) {
       return res.status(400).json({
         error: 'Invalid resume ID format'
@@ -203,6 +216,16 @@ async function analyzeResume(req, res) {
         message: 'The specified resume could not be found in the database'
       });
     }
+
+    // Access control check (IDOR Protection)
+    const userId = getOptionalUserId(req);
+    if (resume.user && String(resume.user) !== String(userId)) {
+      return res.status(403).json({
+        error: 'Access Denied',
+        message: 'You do not have permission to analyze this resume'
+      });
+    }
+
 
     // Check if resume text was properly extracted
     if (!resume.extractedText || resume.extractedText.trim().length === 0) {
@@ -349,6 +372,16 @@ async function getResume(req, res) {
       });
     }
 
+    // Access control check (IDOR Protection)
+    const userId = getOptionalUserId(req);
+    if (resume.user && String(resume.user) !== String(userId)) {
+      return res.status(403).json({
+        error: 'Access Denied',
+        message: 'You do not have permission to access this resume'
+      });
+    }
+
+
     // Return comprehensive resume data
     res.json({
       success: true,
@@ -482,13 +515,23 @@ async function getResumeSummary(req, res) {
 
     // Select fields needed for the summary, including potential AI results
     const resume = await Resume.findById(id)
-      .select('fileName targetJobRole processingStatus aiAnalysis personalInfo analyzedAt isFullyProcessed');
+      .select('user fileName targetJobRole processingStatus aiAnalysis personalInfo analyzedAt isFullyProcessed');
 
     if (!resume) {
       return res.status(404).json({
         error: 'Resume not found'
       });
     }
+
+    // Access control check (IDOR Protection)
+    const userId = getOptionalUserId(req);
+    if (resume.user && String(resume.user) !== String(userId)) {
+      return res.status(403).json({
+        error: 'Access Denied',
+        message: 'You do not have permission to access this resume summary'
+      });
+    }
+
 
     // Check if resume is fully processed (adjust check if isFullyProcessed is a method)
     // const isProcessed = typeof resume.isFullyProcessed === 'function' ? resume.isFullyProcessed() : resume.isFullyProcessed;

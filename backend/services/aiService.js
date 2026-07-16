@@ -20,32 +20,57 @@ RESUME CONTENT:
 ${resumeText}
 --------------------------------------------------
 
-INSTRUCTIONS FOR SCORING (STRICT & HARSH ADDITIVE METHOD):
-Most average resumes should score between 40-55. A good resume should score between 60-70. Only truly exceptional top-1% resumes score 80+. Calibrate your grading perfectly to these standards.
+INSTRUCTIONS FOR SCORING (THE PROFESSIONAL ATS 10-DIMENSION RUBRIC):
+You are functioning as an Enterprise Applicant Tracking System (ATS) identical to Jobscan or ResumeWorded. Do NOT give an arbitrary overall score. You must mathematically calculate the final score by grading the resume across 10 algorithmic dimensions.
 
-CRITICAL: Do not deduct from 100. You MUST start at a BASE SCORE of 35 and ADD points ONLY if the resume proves it earns them.
+Grade each dimension strictly on a scale of 1 to 10 (where 5 is exactly average). 
+YOU MUST OBEY THE FOLLOWING ALGORITHMIC LIMITS:
 
-1. IMPACT & BUSINESS VALUE (Max +20 points)
-- Add 0 points if bullet points just list generic tasks/responsibilities.
-- Add +10 points if 2-3 bullet points contain hard metrics (%, $, numbers).
-- Add +20 points ONLY if almost every bullet point is quantified and shows direct business outcome.
+1. PARSABILITY & ALGORITHMIC FORMAT (1-10):
+- Limit to 5/10 if the total word count is under 300.
+- Check for standard headers (Education, Experience, Skills). If one is missing, limit to 4/10.
 
-2. ACTION VERBS & CLARITY (Max +15 points)
-- Add 0 points if weak verbs are used ("Helped", "Worked on", "Assisted") or personal pronouns ("I", "my") are present.
-- Add +8 points if generic action verbs are used correctly without pronouns.
-- Add +15 points ONLY if very strong verbs ("Architected", "Spearheaded", "Optimized") are consistently used everywhere.
+2. GRAMMAR & PRONOUN CHECK (1-10):
+- Automatically grade 2/10 if ANY personal pronouns ("I", "me", "my", "our") are used.
+- Automatically grade 4/10 if any obvious spelling or grammatical errors exist.
 
-3. FORMATTING, LENGTH, & PROFESSIONALISM (Max +10 points)
-- Add 0 points if there are typos, missing contact info (email/phone), missing core sections, or if it is under 300 words.
-- Add +10 points ONLY if the grammar is absolutely flawless, all contact info is present, and formatting is highly professional.
+3. HEADER & CONTACT (1-10):
+- Grade 10/10 ONLY if Email, Phone, and a professional URL (LinkedIn, GitHub, Portfolio) are exactly present.
+- Grade 2/10 if missing Email or Phone.
 
-4. RELEVANCE & KEYWORDS (Max +20 points)
-- Extract the core skills required for the Target Role.
-- Add 0 points if crucial technical/soft skills are completely missing in the resume bullet points.
-- Add +10 points for partial alignment.
-- Add +20 points ONLY if the candidate proves top-tier expertise directly in their project/experience bullet points.
+4. SUMMARY/OBJECTIVE FATIGUE (1-10):
+- Score under 4/10 if it starts with "Seeking a challenging role" or is mostly generic buzzwords.
+- Score 9/10+ only if the summary acts as a strong professional profile with hard skills.
 
-Theoretical maximum is 100 (which is impossible). Add your scores together (35 + Impact + Verbs + Formatting + Keywords) to get the final score.
+5. ACTION VERB DENSITY (1-10):
+- Deduct points for repetitive verbs.
+- Score under 5/10 if passive verbs are used frequently ("Helped", "Worked on", "Responsible for").
+- Score 10/10 if every bullet starts with an aggressive, diverse verb ("Architected", "Spearheaded").
+
+6. QUANTIFIABLE METRICS (1-10):
+- Count the bullets. If fewer than 50% of bullet points contain hard data (%, $, numbers), MAX score is 4/10.
+- If 0 metrics exist anywhere, score is strictly 1/10.
+- Score 10/10 only if almost all bullets are quantified.
+
+7. BUSINESS IMPACT & RESULTS (1-10):
+- Are the bullet points "task-based" or "result-based"? 
+- Score under 5/10 if they just list duties instead of achieved impact.
+
+8. KEYWORD MATCH (TF-IDF SIMULATION) (1-10):
+- Extract hard skills required for the Target Job Role and Job Description.
+- If less than 60% of implied required hard skills are present, score under 5/10.
+
+9. SKILL VERIFICATION & NATIVITY (1-10):
+- Are keywords just dumped in a "Skills" list, or are they proven natively in Experience bullets?
+- Score under 5/10 if the candidate lists a critical language/tool but has no project applying it.
+
+10. PROJECT/CAREER DEPTH (1-10):
+- Grade the objective complexity and quality of the projects/experience listed.
+
+STEPS TO CALCULATE FINAL_SCORE:
+1. Grade each of the 10 dimensions from 1 to 10 based ONLY on the strict limits above.
+2. Sum all 10 dimension scores together.
+3. This sum is the final actual "overallScore" exactly out of 100.
 
 ### STEP 2: JSON OUTPUT
 Format the output EXACTLY to this JSON structure:
@@ -165,9 +190,9 @@ async function processWithAI(resumeDocument, targetJobRole = 'Not specified', jo
   const maxRetries = 3; // Reduced from 5
   const retryDelayBase = 1000;
 
-  // CRITICAL FIX: Use working flash-latest model as primary
-  const primaryModel = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
-  const fallbackModels = ['gemini-2.0-flash-exp', 'gemini-1.5-pro'];
+  // CRITICAL FIX: Use stable gemini-2.0-flash model as primary
+  const primaryModel = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
+  const fallbackModels = ['gemini-1.5-flash', 'gemini-1.5-pro'];
   const modelCandidates = [primaryModel, ...fallbackModels];
 
   // Add Groq models if key exists (Prioritize Groq if Gemini is failing)
@@ -543,9 +568,20 @@ function extractJson(text) {
   // Try direct parse first
   try { return JSON.parse(t); } catch (_) { /* continue to extraction */ }
 
-  // Extract JSON from text
-  const first = t.indexOf('{');
-  const last = t.lastIndexOf('}');
+  // Extract JSON from text (handles both objects {} and arrays [])
+  const firstCurly = t.indexOf('{');
+  const firstSquare = t.indexOf('[');
+
+  let first = -1;
+  let last = -1;
+
+  if (firstCurly !== -1 && (firstSquare === -1 || firstCurly < firstSquare)) {
+    first = firstCurly;
+    last = t.lastIndexOf('}');
+  } else if (firstSquare !== -1) {
+    first = firstSquare;
+    last = t.lastIndexOf(']');
+  }
 
   if (first !== -1 && last !== -1 && last > first) {
     let slice = t.slice(first, last + 1);
@@ -564,8 +600,96 @@ function extractJson(text) {
   return null;
 }
 
+
+
+// AI Cover Letter Generator service
+async function generateCoverLetterText(resumeText, targetJobRole = 'Software Engineer', jobDescription = '', tone = 'professional', length = 'medium') {
+  console.log(`Starting AI Cover Letter generation for: "${targetJobRole}" (Tone: ${tone}, Length: ${length})`);
+
+  if (String(process.env.AI_MODE).toLowerCase() === 'mock' || String(process.env.AI_DISABLED) === '1') {
+    return `Dear Hiring Manager,
+
+I am writing to express my strong interest in the ${targetJobRole} position at your company. With a solid background in software engineering, technical innovation, and delivering scalable customer-facing applications, I am confident in my ability to contribute meaningfully to your team.
+
+Throughout my career, I have focused on designing robust systems, optimizing client rendering performance, and collaborating across multidisciplinary teams to ship reliable software. My technical skills align perfectly with the requirements of the ${targetJobRole} role, and I am excited about the opportunity to bring my experience to your organization.
+
+Thank you for your time and consideration. I look forward to discussing how my skills and background meet your needs.
+
+Sincerely,
+[Your Name]`;
+  }
+
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error('GEMINI_API_KEY is not set');
+  }
+
+  const model = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
+  const cleanModel = model.replace(/^models\//, '');
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${cleanModel}:generateContent?key=${apiKey}`;
+
+  // Establish instructions based on tone & length
+  let toneInstruction = "professional, balanced, and direct";
+  if (tone === 'creative') toneInstruction = "innovative, warm, and storytelling-focused";
+  if (tone === 'bold') toneInstruction = "confident, high-impact, disruptive, and highly assertive";
+  if (tone === 'modern') toneInstruction = "sleek, clean, contemporary, and highly polished";
+
+  let lengthInstruction = "around 250 words, forming a standard 3-4 paragraph letter";
+  if (length === 'short') lengthInstruction = "around 120-150 words, forming a highly concise 2-paragraph pitch";
+  if (length === 'long') lengthInstruction = "around 400 words, forming a comprehensive 4-paragraph cover letter describing key details";
+
+  const prompt = `You are a world-class professional resume and cover letter writer.
+Generate a compelling, customized cover letter for a candidate applying to a target job role.
+
+TARGET ROLE: ${targetJobRole}
+TONE: ${toneInstruction}
+LENGTH: ${lengthInstruction}
+CANDIDATE RESUME HIGHLIGHTS (EXTRACTED TEXT):
+"""
+${resumeText}
+"""
+
+${jobDescription ? `TARGET JOB DESCRIPTION:\n"""\n${jobDescription}\n"""\n` : ''}
+
+INSTRUCTIONS:
+1. Craft a highly engaging, custom-tailored cover letter based on the provided resume highlights and target job description (if provided).
+2. Align the tone strictly to: ${toneInstruction}.
+3. Align the word count and structure to: ${lengthInstruction}.
+4. Standard placeholder tags like "[Your Name]", "[Company Name]", and "[Date]" are acceptable. Do not add raw HTML or formatting, just return beautiful, clean plaintext with standard line-breaks.
+5. Do not include any explanations, introductory chit-chat, or formatting tags. Return ONLY the letter content.`;
+
+  try {
+    const requestBody = {
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: {
+        temperature: 0.6,
+        maxOutputTokens: 1200
+      }
+    };
+
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(requestBody),
+      timeout: 25000
+    });
+
+    if (!res.ok) {
+      throw new Error(`Gemini API Error: ${res.status}`);
+    }
+
+    const json = await res.json();
+    const rawResponseText = json?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    return rawResponseText.trim();
+  } catch (error) {
+    console.error('Error in generateCoverLetterText service:', error);
+    throw error;
+  }
+}
+
 module.exports = {
   processWithAI,
   geminiHealth,
-  listModels
+  listModels,
+  generateCoverLetterText
 };
