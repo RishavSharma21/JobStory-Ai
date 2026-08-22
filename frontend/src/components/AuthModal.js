@@ -111,10 +111,16 @@ const AuthModal = ({ isOpen, onClose, onSuccess }) => {
                 body: JSON.stringify(body)
             });
 
-            const data = await response.json();
+            const resText = await response.text();
+            let data = null;
+            try {
+                data = JSON.parse(resText);
+            } catch (_) {
+                throw new Error(resText || `Server Error (${response.status})`);
+            }
 
             if (!response.ok) {
-                throw new Error(data.msg || 'Authentication failed');
+                throw new Error(data.msg || data.error || 'Authentication failed');
             }
 
             // Save token to localStorage
@@ -130,6 +136,7 @@ const AuthModal = ({ isOpen, onClose, onSuccess }) => {
             setLoading(false);
         }
     };
+
 
     const handleSubmit = async (e) => {
         e.preventDefault();
