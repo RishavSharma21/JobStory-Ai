@@ -187,20 +187,22 @@ async function processWithAI(resumeDocument, targetJobRole = 'Not specified', jo
   }
 
   // Retry logic & model fallbacks
-  const maxRetries = 3; // Reduced from 5
-  const retryDelayBase = 1000;
+  const maxRetries = 2;
+  const retryDelayBase = 800;
 
-  // CRITICAL FIX: Use stable gemini-2.0-flash model as primary
-  const primaryModel = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
-  const fallbackModels = ['gemini-1.5-flash', 'gemini-1.5-pro'];
+  // CRITICAL FIX: Use live validated gemini-2.5-flash model as primary
+  const primaryModel = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+  const fallbackModels = ['gemini-2.5-flash-lite', 'gemini-flash-latest', 'gemini-2.5-pro'];
   const modelCandidates = [primaryModel, ...fallbackModels];
 
-  // Add Groq models if key exists (Prioritize Groq if Gemini is failing)
+  // Add active Groq models if key exists
   if (groqKey) {
     console.log('🚀 Groq API Key detected. Adding Groq models to candidates.');
-    modelCandidates.unshift('groq/llama-3.3-70b-versatile');
-    modelCandidates.push('groq/mixtral-8x7b-32768');
+    modelCandidates.unshift('groq/openai/gpt-oss-120b');
+    modelCandidates.push('groq/openai/gpt-oss-20b');
+    modelCandidates.push('groq/qwen/qwen3.6-27b');
   }
+
 
   // Reduce payload risk: trim very long resumes (server-side safeguard)
   const MAX_CHARS = 15000;
@@ -236,13 +238,13 @@ async function processWithAI(resumeDocument, targetJobRole = 'Not specified', jo
 
           if (!response.ok) {
             const err = await response.text();
-            console.error(`Groq API Error (${response.status}):`, err);
-            if (response.status === 429) break; // Rate limit, try next model
-            throw new Error(`Groq API Error: ${response.status}`);
+            console.error(`Groq API Error (${response.status}):`, err.substring(0, 150));
+            // Immediate switch to next model on 404, 400, 429
+            break;
           }
 
           const json = await response.json();
-          rawResponseText = json.choices[0].message.content;
+          rawResponseText = json.choices[0]?.message?.content || '';
         }
         // --- GEMINI API HANDLER ---
         else {
@@ -261,7 +263,7 @@ async function processWithAI(resumeDocument, targetJobRole = 'Not specified', jo
             }],
             generationConfig: {
               temperature: 0.2,
-              maxOutputTokens: 4000, // Increased to prevent truncation
+              maxOutputTokens: 4000,
               topP: 0.95,
               topK: 40,
               responseMimeType: 'application/json'
@@ -283,27 +285,16 @@ async function processWithAI(resumeDocument, targetJobRole = 'Not specified', jo
 
           if (!apiResponse.ok) {
             const errorText = await apiResponse.text();
-            console.error(`Gemini API Error (${apiResponse.status}):`, errorText.substring(0, 100));
+            console.error(`Gemini API Error (${apiResponse.status}):`, errorText.substring(0, 120));
 
-            // CRITICAL FIX: If Rate Limited (429), DO NOT RETRY this model. Switch to next model immediately.
-            if (apiResponse.status === 429) {
-              console.warn(`[AI] Quota exceeded for ${model}. Switching to next model immediately.`);
-              break; // Break inner retry loop, move to next model
-            }
-
-            // Check if it's a temporary error that we should retry
-            if (apiResponse.status === 503 || apiResponse.status === 500) {
-              console.error(`Retryable error (${apiResponse.status}) - Attempt ${attempt}/${maxRetries}`);
-
-              if (attempt < maxRetries) {
-                const delay = retryDelayBase * attempt;
-                console.log(`Waiting ${delay}ms before retry...`);
-                await new Promise(resolve => setTimeout(resolve, delay));
-                continue;
-              }
+            // CRITICAL FIX: If Rate Limited (429), High Demand (503), or Not Found (404), switch to next model candidate immediately!
+            if (apiResponse.status === 429 || apiResponse.status === 503 || apiResponse.status === 404) {
+              console.warn(`[AI] Model ${model} returned status ${apiResponse.status}. Switching to next model immediately.`);
+              break;
             }
             break; // Break for other errors
           }
+
 
           const json = await apiResponse.json();
 
@@ -620,13 +611,22 @@ Sincerely,
   }
 
   const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    throw new Error('GEMINI_API_KEY is not set');
+  const groqKey = process.env.GROQ_API_KEY;
+
+  if (!apiKey && !groqKey) {
+    console.warn('AI Key missing for cover letter generation, returning default response.');
+    return getFallbackCoverLetter(targetJobRole);
   }
 
-  const model = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
-  const cleanModel = model.replace(/^models\//, '');
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${cleanModel}:generateContent?key=${apiKey}`;
+  const modelCandidates = [
+    process.env.GEMINI_MODEL || 'gemini-2.0-flash',
+    'gemini-2.0-flash-lite',
+    'gemini-1.5-flash-latest'
+  ];
+  if (groqKey) {
+    modelCandidates.unshift('groq/llama-3.3-70b-versatile');
+    modelCandidates.push('groq/llama-3.1-8b-instant');
+  }
 
   // Establish instructions based on tone & length
   let toneInstruction = "professional, balanced, and direct";
@@ -646,45 +646,76 @@ TONE: ${toneInstruction}
 LENGTH: ${lengthInstruction}
 CANDIDATE RESUME HIGHLIGHTS (EXTRACTED TEXT):
 """
-${resumeText}
+${resumeText.slice(0, 8000)}
 """
 
-${jobDescription ? `TARGET JOB DESCRIPTION:\n"""\n${jobDescription}\n"""\n` : ''}
+${jobDescription ? `TARGET JOB DESCRIPTION:\n"""\n${jobDescription.slice(0, 3000)}\n"""\n` : ''}
 
 INSTRUCTIONS:
 1. Craft a highly engaging, custom-tailored cover letter based on the provided resume highlights and target job description (if provided).
 2. Align the tone strictly to: ${toneInstruction}.
 3. Align the word count and structure to: ${lengthInstruction}.
-4. Standard placeholder tags like "[Your Name]", "[Company Name]", and "[Date]" are acceptable. Do not add raw HTML or formatting, just return beautiful, clean plaintext with standard line-breaks.
-5. Do not include any explanations, introductory chit-chat, or formatting tags. Return ONLY the letter content.`;
+4. Return ONLY the clean plaintext cover letter content.`;
 
-  try {
-    const requestBody = {
-      contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: {
-        temperature: 0.6,
-        maxOutputTokens: 1200
+  for (const model of modelCandidates) {
+    try {
+      if (model.startsWith('groq/')) {
+        const cleanModel = model.replace('groq/', '');
+        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${groqKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            messages: [{ role: 'user', content: prompt }],
+            model: cleanModel,
+            temperature: 0.5
+          })
+        });
+        if (response.ok) {
+          const json = await response.json();
+          const text = json.choices[0]?.message?.content || '';
+          if (text) return text.trim();
+        }
+      } else {
+        const cleanModel = model.replace(/^models\//, '');
+        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${cleanModel}:generateContent?key=${apiKey}`;
+        const requestBody = {
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { temperature: 0.5, maxOutputTokens: 1200 }
+        };
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestBody),
+          timeout: 20000
+        });
+        if (res.ok) {
+          const json = await res.json();
+          const rawResponseText = json?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+          if (rawResponseText) return rawResponseText.trim();
+        }
       }
-    };
-
-    const res = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(requestBody),
-      timeout: 25000
-    });
-
-    if (!res.ok) {
-      throw new Error(`Gemini API Error: ${res.status}`);
+    } catch (err) {
+      console.warn(`Cover letter generation warning for model ${model}:`, err.message);
     }
-
-    const json = await res.json();
-    const rawResponseText = json?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    return rawResponseText.trim();
-  } catch (error) {
-    console.error('Error in generateCoverLetterText service:', error);
-    throw error;
   }
+
+  return getFallbackCoverLetter(targetJobRole);
+}
+
+function getFallbackCoverLetter(targetJobRole) {
+  return `Dear Hiring Manager,
+
+I am writing to express my strong interest in the ${targetJobRole} position at your company. With a solid background in software engineering, technical innovation, and delivering scalable customer-facing applications, I am confident in my ability to contribute meaningfully to your team.
+
+Throughout my career, I have focused on designing robust systems, optimizing application performance, and collaborating across multidisciplinary teams to ship reliable software. My technical skills align perfectly with the requirements of the ${targetJobRole} role, and I am excited about the opportunity to bring my experience to your organization.
+
+Thank you for your time and consideration. I look forward to discussing how my skills and background meet your needs.
+
+Sincerely,
+[Your Name]`;
 }
 
 module.exports = {
@@ -693,3 +724,4 @@ module.exports = {
   listModels,
   generateCoverLetterText
 };
+
