@@ -183,7 +183,7 @@ const AuthModal = ({ isOpen, onClose, onSuccess }) => {
                         <input
                             type="text"
                             name="email"
-                            placeholder={isLogin ? "demo or name@company.com" : "name@company.com"}
+                            placeholder="name@company.com"
                             value={formData.email}
                             onChange={handleChange}
                             required
@@ -224,6 +224,8 @@ const AuthModal = ({ isOpen, onClose, onSuccess }) => {
                 </div>
 
                 <div className="auth-options">
+                    {/* Instant Demo Login hidden until interview */}
+                    {/* 
                     <button
                         type="button"
                         className="demo-auth-btn"
@@ -233,6 +235,7 @@ const AuthModal = ({ isOpen, onClose, onSuccess }) => {
                         <FaBolt className="demo-bolt-icon" />
                         <span>Instant Demo Login</span>
                     </button>
+                    */}
 
                     <button
                         type="button"
