@@ -15,6 +15,15 @@ const AuthModal = ({ isOpen, onClose, onSuccess }) => {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
+    // Reset form state whenever modal opens or closes
+    React.useEffect(() => {
+        if (isOpen) {
+            setFormData({ name: '', email: '', password: '' });
+            setError('');
+            setLoading(false);
+        }
+    }, [isOpen]);
+
     // "Real" Google Login Hook
     const googleLogin = useGoogleLogin({
         onSuccess: async (tokenResponse) => {
