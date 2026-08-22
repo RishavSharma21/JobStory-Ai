@@ -431,12 +431,12 @@ const createSampleResumeForDemo = async (userId) => {
 // Helper function to seed/ensure demo user on database startup
 const seedDemoUser = async () => {
     try {
-        const demoEmail = 'demo@storypitch.ai';
+        const demoEmail = 'demo@gmail.com';
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash('demo2026', salt);
 
         let user = await User.findOne({
-            $or: [{ email: demoEmail }, { email: 'demo' }]
+            $or: [{ email: demoEmail }, { email: 'demo@storypitch.ai' }, { email: 'demo' }]
         });
 
         if (!user) {
@@ -446,12 +446,13 @@ const seedDemoUser = async () => {
                 password: hashedPassword
             });
             await user.save();
-            console.log('[Demo Seed] Created demo user account: demo@storypitch.ai (pass: demo2026)');
+            console.log('[Demo Seed] Created demo user account: demo@gmail.com (pass: demo2026)');
         } else {
+            user.email = demoEmail;
             user.password = hashedPassword;
             if (!user.name) user.name = 'Demo Interviewer';
             await user.save();
-            console.log('[Demo Seed] Updated demo user password to demo2026');
+            console.log('[Demo Seed] Updated demo user account to demo@gmail.com (pass: demo2026)');
         }
 
         // Check if demo user has resumes pre-populated
@@ -470,7 +471,7 @@ const seedDemoUser = async () => {
 router.post('/reset-demo', async (req, res) => {
     try {
         let user = await User.findOne({
-            $or: [{ email: 'demo@storypitch.ai' }, { email: 'demo' }]
+            $or: [{ email: 'demo@gmail.com' }, { email: 'demo@storypitch.ai' }, { email: 'demo' }]
         });
 
         if (user) {
