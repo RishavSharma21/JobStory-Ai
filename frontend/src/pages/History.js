@@ -601,8 +601,9 @@ const History = ({ historyItems, onViewItem, onDeleteItem }) => {
           </div>
         )
       }
-    </div >
+    </div>
   );
 };
+
 
 export default History;
