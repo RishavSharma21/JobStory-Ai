@@ -377,6 +377,7 @@ const History = ({ historyItems, onViewItem, onDeleteItem }) => {
               </span>
               <span className="stat-text">Your personalized career insights</span>
             </p>
+          </div>
           <div className="header-actions" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
             {isDemoUser && (
               <button 
@@ -410,6 +411,7 @@ const History = ({ historyItems, onViewItem, onDeleteItem }) => {
             </button>
           </div>
         </div>
+
 
 
         {/* Search and Sort */}
