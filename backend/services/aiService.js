@@ -178,10 +178,11 @@ async function processWithAI(resumeDocument, targetJobRole = 'Not specified', jo
   const maxRetries = 2;
   const retryDelayBase = 800;
 
-  // CRITICAL FIX: Use ultra-fast validated gemini-flash-lite-latest (708ms) as primary
-  const primaryModel = process.env.GEMINI_MODEL || 'gemini-flash-lite-latest';
-  const fallbackModels = ['gemini-flash-latest', 'gemini-3.6-flash'];
+  // Use stable, valid Gemini model names
+  const primaryModel = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
+  const fallbackModels = ['gemini-1.5-flash', 'gemini-1.5-pro'];
   const modelCandidates = [primaryModel, ...fallbackModels];
+
 
 
 
