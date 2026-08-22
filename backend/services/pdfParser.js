@@ -1,6 +1,8 @@
 // pdfParser.js - Simplified PDF Text Extractor for AI Resume Storyteller
-const pdfParse = require('pdf-parse');
+// IMPORTANT: Use the lib path directly to avoid pdf-parse test file bug on cloud/Linux environments
+const pdfParse = require('pdf-parse/lib/pdf-parse.js');
 const fs = require('fs');
+
 
 /**
  * Class to handle robust PDF text extraction and basic cleaning.
