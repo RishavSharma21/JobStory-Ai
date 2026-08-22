@@ -9,77 +9,31 @@ ${jobDescription}
 
 ` : '';
 
-  return `You are an elite, highly strict Applicant Tracking System (ATS) parsing algorithm used by Fortune 500 companies. Your task is to mathematically evaluate the candidate's resume against their target role. 
+  return `You are an elite, enterprise-grade Senior Technical Recruiter and ATS Audit Engine (equivalent to Jobscan, TopResume, and ResumeWorded). Your job is to thoroughly analyze the candidate's resume and return deeply specific, non-generic, highly actionable feedback.
 
-CONTEXT:
-- Target Role: ${targetJobRole || 'Professional'}
+TARGET ROLE: ${targetJobRole || 'Software Engineer / Technology Professional'}
 ${jobDescriptionSection}
 
 --------------------------------------------------
-RESUME CONTENT:
+RESUME CONTENT TO AUDIT:
 ${resumeText}
 --------------------------------------------------
 
-INSTRUCTIONS FOR SCORING (THE PROFESSIONAL ATS 10-DIMENSION RUBRIC):
-You are functioning as an Enterprise Applicant Tracking System (ATS) identical to Jobscan or ResumeWorded. Do NOT give an arbitrary overall score. You must mathematically calculate the final score by grading the resume across 10 algorithmic dimensions.
+CRITICAL REQUIREMENTS FOR YOUR RESPONSE:
+1. DO NOT give generic advice (e.g. "Add more details" or "Fix formatting"). Give SPECIFIC, EXPLICIT, LINE-BY-LINE feedback with exact quotes and concrete rewrite examples.
+2. For Grammar & Spelling: Search the resume text thoroughly for typos, weak passive phrasing, first-person pronouns ("I", "me", "my", "our"), or missing punctuation. Return an array of specific, quoted line-by-line corrections. If no spelling errors exist, cite specific weak passive phrases and provide their high-impact active rewrite.
+3. For Quick Fixes: Provide 5 to 7 high-priority bullet point improvements. Each quick fix MUST be formatted as: "CATEGORY: [Action Needed] -> [Concrete Example Rewrite using hard metrics or industry terminology]".
+4. For Section Scores: Scientifically calculate individual scores (0-10) for Education, Skills, Projects, Experience, and Formatting based on ATS standards.
+5. For ATS Keyword Analysis: Extract exact technical skills present in the resume vs critical missing industry keywords required for ${targetJobRole || 'the target role'}.
+6. For Recruiter Insights & Red Flags: Give an authoritative 6-second recruiter skim verdict, listing major strengths, concerning red flags, and key positioning advice.
 
-Grade each dimension strictly on a scale of 1 to 10 (where 5 is exactly average). 
-YOU MUST OBEY THE FOLLOWING ALGORITHMIC LIMITS:
-
-1. PARSABILITY & ALGORITHMIC FORMAT (1-10):
-- Limit to 5/10 if the total word count is under 300.
-- Check for standard headers (Education, Experience, Skills). If one is missing, limit to 4/10.
-
-2. GRAMMAR & PRONOUN CHECK (1-10):
-- Automatically grade 2/10 if ANY personal pronouns ("I", "me", "my", "our") are used.
-- Automatically grade 4/10 if any obvious spelling or grammatical errors exist.
-
-3. HEADER & CONTACT (1-10):
-- Grade 10/10 ONLY if Email, Phone, and a professional URL (LinkedIn, GitHub, Portfolio) are exactly present.
-- Grade 2/10 if missing Email or Phone.
-
-4. SUMMARY/OBJECTIVE FATIGUE (1-10):
-- Score under 4/10 if it starts with "Seeking a challenging role" or is mostly generic buzzwords.
-- Score 9/10+ only if the summary acts as a strong professional profile with hard skills.
-
-5. ACTION VERB DENSITY (1-10):
-- Deduct points for repetitive verbs.
-- Score under 5/10 if passive verbs are used frequently ("Helped", "Worked on", "Responsible for").
-- Score 10/10 if every bullet starts with an aggressive, diverse verb ("Architected", "Spearheaded").
-
-6. QUANTIFIABLE METRICS (1-10):
-- Count the bullets. If fewer than 50% of bullet points contain hard data (%, $, numbers), MAX score is 4/10.
-- If 0 metrics exist anywhere, score is strictly 1/10.
-- Score 10/10 only if almost all bullets are quantified.
-
-7. BUSINESS IMPACT & RESULTS (1-10):
-- Are the bullet points "task-based" or "result-based"? 
-- Score under 5/10 if they just list duties instead of achieved impact.
-
-8. KEYWORD MATCH (TF-IDF SIMULATION) (1-10):
-- Extract hard skills required for the Target Job Role and Job Description.
-- If less than 60% of implied required hard skills are present, score under 5/10.
-
-9. SKILL VERIFICATION & NATIVITY (1-10):
-- Are keywords just dumped in a "Skills" list, or are they proven natively in Experience bullets?
-- Score under 5/10 if the candidate lists a critical language/tool but has no project applying it.
-
-10. PROJECT/CAREER DEPTH (1-10):
-- Grade the objective complexity and quality of the projects/experience listed.
-
-STEPS TO CALCULATE FINAL_SCORE:
-1. Grade each of the 10 dimensions from 1 to 10 based ONLY on the strict limits above.
-2. Sum all 10 dimension scores together.
-3. This sum is the final actual "overallScore" exactly out of 100.
-
-### STEP 2: JSON OUTPUT
-Format the output EXACTLY to this JSON structure:
+RETURN YOUR ANALYSIS STRICTLY IN THIS VALID JSON FORMAT (DO NOT ADD MARKDOWN FENCES OR EXTRA PROSE):
 
 {
   "atsScore": {
-    "score": <Calculated Number 0-100 (Usually between 45-75)>,
-    "level": "<'Poor' if < 50, 'Fair' if 50-69, 'Good' if 70-84, 'Excellent' if 85+>",
-    "explanation": "<A 2-3 sentence professional summary explaining the score>"
+    "score": <Calculated Number 0-100>,
+    "level": "<'Poor' (<50) | 'Fair' (50-69) | 'Good' (70-84) | 'Excellent' (85+)>",
+    "explanation": "<2-3 sentence rigorous summary explaining exactly why the resume received this score>"
   },
   "overallScore": <SAME NUMBER AS atsScore.score>,
   "sectionScores": {
@@ -90,31 +44,68 @@ Format the output EXACTLY to this JSON structure:
     "formatting": <Number 0-10>
   },
   "grammarSpelling": [
-    "<String: List specific typos and grammar errors found>"
+    "<String: Exact quote or line from resume with specific correction e.g. 'Found pronoun \"I built\": Replace with \"Engineered...\"'>",
+    "<String: Line-by-line grammar or active voice improvement>",
+    "<String: Typo or phrasing correction>"
   ],
   "quickFixes": [
-    "<String: CATEGORY: Specific actionable fix 1 (e.g., 'METRICS: Add data to your project descriptions to show impact')>",
-    "<String: CATEGORY: Specific actionable fix 2>",
-    "<String: CATEGORY: Specific actionable fix 3>"
+    "<String: CATEGORY: Specific actionable fix 1 with exact example rewrite>",
+    "<String: CATEGORY: Specific actionable fix 2 with exact example rewrite>",
+    "<String: CATEGORY: Specific actionable fix 3 with exact example rewrite>",
+    "<String: CATEGORY: Specific actionable fix 4 with exact example rewrite>",
+    "<String: CATEGORY: Specific actionable fix 5 with exact example rewrite>"
   ],
   "recruiterImpression": {
-    "verdict": "<String: Positive/Neutral/Negative>",
-    "skimTime": "<String: e.g., '10 seconds'>",
-    "topObservation": "<String: The most glaring issue or biggest strength>"
+    "verdict": "<'Positive' | 'Neutral' | 'Negative'>",
+    "skimTime": "<e.g. '6 seconds'>",
+    "topObservation": "<Detailed observation highlighting the candidate's core differentiator or biggest vulnerability>"
+  },
+  "recruiterInsights": {
+    "overview": "<Professional recruiter evaluation of candidate readiness>",
+    "keyStrengths": [
+      "<Specific candidate strength 1>",
+      "<Specific candidate strength 2>",
+      "<Specific candidate strength 3>"
+    ],
+    "concerningAreas": [
+      "<Specific vulnerability or red flag 1>",
+      "<Specific vulnerability or red flag 2>"
+    ],
+    "recommendations": [
+      "<Strategic career & positioning recommendation 1>",
+      "<Strategic career & positioning recommendation 2>"
+    ]
   },
   "atsAnalysis": {
-    "missingKeywords": ["<String: Missing critical skills>"],
-    "presentKeywords": ["<String: Skills found in resume>"],
-    "keywordMatchScore": <Number 0-100>,
-    "missingRequiredKeywords": ["<String: Required but missing skills>"]
+    "presentKeywords": ["<String: Technical skill found in resume 1>", "<String: Skill 2>", "<String: Skill 3>"],
+    "missingKeywords": ["<String: Critical missing industry skill 1>", "<String: Missing skill 2>", "<String: Missing skill 3>"],
+    "missingRequiredKeywords": ["<String: Essential tool/framework missing for target role 1>", "<String: Essential tool 2>"],
+    "keywordMatchScore": <Calculated Number 0-100>
   },
-  
-  // Legacy fields for compatibility
-  "redFlags": [],
-  "actionPlan": { "high": [], "medium": [], "low": [] }
+  "jobMatching": {
+    "targetRole": "${targetJobRole || 'Software Engineer'}",
+    "matchPercentage": <Number 0-100>,
+    "matchingSkills": ["<Matched skill 1>", "<Matched skill 2>"],
+    "missingSkills": ["<Missing required skill 1>", "<Missing required skill 2>"],
+    "recommendation": "<Direct advice on how to align resume closer to job description requirements>"
+  },
+  "strengths": [
+    "<High-value candidate strength 1>",
+    "<High-value candidate strength 2>",
+    "<High-value candidate strength 3>"
+  ],
+  "growthAreas": [
+    "<Specific area for growth 1>",
+    "<Specific area for growth 2>"
+  ],
+  "redFlags": [
+    "<Flag 1>",
+    "<Flag 2>"
+  ]
 }
 `;
 }
+
 
 
 
@@ -255,12 +246,13 @@ async function processWithAI(resumeDocument, targetJobRole = 'Not specified', jo
               }]
             }],
             generationConfig: {
-              temperature: 0.2,
-              maxOutputTokens: 4000,
+              temperature: 0.1,
+              maxOutputTokens: 8192,
               topP: 0.95,
               topK: 40,
               responseMimeType: 'application/json'
             },
+
             safetySettings: [
               { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
               { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
