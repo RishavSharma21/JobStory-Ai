@@ -1,6 +1,7 @@
 import React, { useMemo, useRef, useState, useEffect } from 'react';
-// Using Material Design icon set for a consistent visual language
-import { MdSecurity, MdSpellcheck, MdFormatListBulleted, MdReportProblem, MdBuild, MdDownload, MdRefresh, MdDescription, MdAutoAwesome, MdPerson, MdCode, MdLightbulb, MdRocket, MdLock, MdInfoOutline, MdClose, MdHelpOutline, MdWarning } from 'react-icons/md';
+import { MdSecurity, MdSpellcheck, MdFormatListBulleted, MdReportProblem, MdBuild, MdDownload, MdRefresh, MdDescription, MdAutoAwesome, MdPerson, MdCode, MdLightbulb, MdRocket, MdLock, MdInfoOutline, MdClose, MdHelpOutline, MdWarning, MdContentCopy, MdCheck, MdExpandMore, MdExpandLess } from 'react-icons/md';
+
+
 import './StoryGeneration.css';
 import './LoadingAndAccessibility.css';
 import { generateCompleteReport } from '../utils/pdfDownload';
@@ -97,8 +98,212 @@ const StoryGeneration = ({ resumeData, onSaveToHistory, onBack }) => {
     );
   }
 
+// ===== HUMAN-CRAFTED MINIMALIST AUDIT ITEM RENDERER =====
+const parseAuditItem = (str, type = 'grammar') => {
+  if (!str) return null;
+  let text = String(str).replace(/^Correction Needed:\s*/i, '').replace(/^→\s*/, '').trim();
+
+  let category = type === 'grammar' ? 'GRAMMAR' : 'QUICK FIX';
+  let location = '';
+  let original = '';
+  let suggested = '';
+  let explanation = '';
+
+  // Extract category prefix if colon exists
+  const firstColon = text.indexOf(':');
+  if (firstColon !== -1 && firstColon < 60) {
+    const rawCat = text.substring(0, firstColon).trim();
+    text = text.substring(firstColon + 1).trim();
+
+    // Check if rawCat contains location e.g. "WEAK PASSIVE PHRASING IN JOBSTORY AI BULLET 1"
+    const locMatch = rawCat.match(/(?:IN|FOR|AT)\s+([^:]+)/i);
+    if (locMatch) {
+      location = locMatch[1].trim();
+      category = rawCat.replace(/(?:IN|FOR|AT)\s+[^:]+/i, '').trim() || (type === 'grammar' ? 'PHRASING' : 'IMPROVEMENT');
+    } else {
+      category = rawCat;
+    }
+  }
+
+  if (text.includes(' -> ')) {
+    const parts = text.split(' -> ');
+    original = parts[0].trim();
+    let rem = parts[1].trim();
+
+    if (/replace with/i.test(rem)) {
+      const rMatch = rem.match(/(.*?)\s*replace with\s*(.*)/i);
+      if (rMatch) {
+        explanation = rMatch[1].trim().replace(/^:\s*/, '');
+        suggested = rMatch[2].trim().replace(/^:\s*/, '');
+      } else {
+        suggested = rem;
+      }
+    } else {
+      suggested = rem;
+    }
+  } else if (/replace with/i.test(text)) {
+    const rMatch = text.match(/(.*?)\s*replace with\s*(.*)/i);
+    if (rMatch) {
+      original = rMatch[1].trim();
+      suggested = rMatch[2].trim().replace(/^:\s*/, '');
+    } else {
+      original = text;
+    }
+  } else if (text.toLowerCase().includes(' to ') && text.includes("'")) {
+    const toMatch = text.match(/(.*?)\s*'([^']+)'\s*to\s*'([^']+)'/i);
+    if (toMatch) {
+      explanation = toMatch[1].trim();
+      original = toMatch[2].trim();
+      suggested = toMatch[3].trim();
+    } else {
+      original = text;
+    }
+  } else {
+    original = text;
+  }
+
+  if (original.includes("'")) {
+    const qMatch = original.match(/(.*?):?\s*'([^']+)'/);
+    if (qMatch) {
+      if (qMatch[1] && !explanation) explanation = qMatch[1].trim();
+      original = qMatch[2].trim();
+    }
+  }
+  if (suggested.includes("'")) {
+    const qMatch2 = suggested.match(/(.*?):?\s*'([^']+)'/);
+    if (qMatch2) {
+      if (qMatch2[1] && !explanation) explanation = qMatch2[1].trim();
+      suggested = qMatch2[2].trim();
+    }
+  }
+
+  original = original.replace(/^['"]|['"]$/g, '').trim();
+  suggested = suggested.replace(/^['"]|['"]$/g, '').trim();
+  explanation = explanation.replace(/^:\s*/, '').trim();
+
+  category = category.toUpperCase().trim();
+
+  return { category, location, original, suggested, explanation };
+};
+
+const GrammarlyAuditCard = ({ item, idx, type = 'grammar' }) => {
+  const [copied, setCopied] = useState(false);
+  const parsed = parseAuditItem(item, type);
+  if (!parsed) return null;
+
+  const handleCopy = (textToCopy) => {
+    if (!textToCopy) return;
+    navigator.clipboard.writeText(textToCopy);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const textToCopy = parsed.suggested || parsed.original;
+
+  return (
+    <div key={idx} className="pro-audit-item">
+      {/* Top Meta Line */}
+      <div className="pro-audit-top">
+        <div className="pro-tag-group">
+          <span className="pro-category-tag">{parsed.category}</span>
+          {parsed.location && parsed.location !== parsed.category && (
+            <span className="pro-location-tag">• {parsed.location}</span>
+          )}
+        </div>
+
+        {textToCopy && (
+          <button
+            type="button"
+            className={`icon-copy-btn ${copied ? 'copied' : ''}`}
+            onClick={() => handleCopy(textToCopy)}
+            title={copied ? "Copied!" : "Copy suggestion"}
+            aria-label="Copy suggestion to clipboard"
+          >
+            {copied ? <MdCheck size={16} /> : <MdContentCopy size={14} />}
+            <span>{copied ? 'Copied' : 'Copy'}</span>
+          </button>
+        )}
+      </div>
+
+      {/* Main Body */}
+      <div className="pro-audit-body">
+        {parsed.original && parsed.suggested ? (
+          <>
+            <div className="pro-line original">
+              <span className="pro-label">Original:</span>
+              <span className="pro-text-old">{parsed.original}</span>
+            </div>
+            <div className="pro-line suggested">
+              <span className="pro-label green">Suggested:</span>
+              <span className="pro-text-new">{parsed.suggested}</span>
+            </div>
+          </>
+        ) : (
+          <div className="pro-line simple">
+            <span className="pro-text-simple">{parsed.original || parsed.suggested}</span>
+          </div>
+        )}
+      </div>
+
+      {/* Recruiter Rationale Footer */}
+      {parsed.explanation && (
+        <div className="pro-audit-reason">
+          <strong>Why:</strong> {parsed.explanation}
+        </div>
+      )}
+    </div>
+  );
+};
+
+
+// ===== EXPANDABLE AUDIT LIST COMPONENT (CONTROLLED STATE - PERSISTENT ON SCROLL) =====
+const ExpandableAuditList = ({ items, type = 'grammar', initialLimit = 2, expanded, onToggle }) => {
+  if (!items || items.length === 0) return null;
+
+  const visibleItems = expanded ? items : items.slice(0, initialLimit);
+  const hiddenCount = items.length - initialLimit;
+
+  return (
+    <div className="expandable-audit-wrapper">
+      <div className="grammarly-cards-container">
+        {visibleItems.map((item, i) => (
+          <GrammarlyAuditCard
+            key={i}
+            item={typeof item === 'object' ? item.text : item}
+            idx={i}
+            type={type}
+          />
+        ))}
+      </div>
+
+      {hiddenCount > 0 && (
+        <div className="linear-show-more-wrapper">
+          <button
+            type="button"
+            className="linear-show-more-btn"
+            onClick={onToggle}
+          >
+            <span>{expanded ? `Show Less` : `Show ${hiddenCount} More ${type === 'grammar' ? 'Issues' : 'Fixes'}`}</span>
+            {expanded ? <MdExpandLess size={18} /> : <MdExpandMore size={18} />}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+
+
+
+
+
+
+
+
+
   // Extract job role and resume name from resumeData
   const jobRole = resumeData?.targetJobRole || "Not specified";
+
   const resumeName = resumeData?.fileName || "resume.pdf";
   const fileUrl = resumeData?.fileUrl; // URL for resume preview
   const fileSize = typeof resumeData?.fileSize === 'number' ? `${(resumeData.fileSize / 1024).toFixed(1)} KB` : "Unknown";
@@ -508,6 +713,11 @@ const StoryGeneration = ({ resumeData, onSaveToHistory, onBack }) => {
 
   const [activeSection, setActiveSection] = useState('scores');
 
+  // Persistent expansion states (prevents auto-collapsing during scroll or re-renders)
+  const [expandedGrammar, setExpandedGrammar] = useState(false);
+  const [expandedFixes, setExpandedFixes] = useState(false);
+
+
   // Scroll Spy Logic with IntersectionObserver
   useEffect(() => {
     // Lock variable to prevent observer from fighting manual clicks
@@ -695,182 +905,111 @@ const StoryGeneration = ({ resumeData, onSaveToHistory, onBack }) => {
               )}
             </div>
 
-            {/* 2) GRAMMAR & SPELLING (Clean List) */}
+            {/* 2) GRAMMAR & SPELLING AUDIT */}
             <div ref={grammarCardRef} id="grammar" className="analysis-card" style={{ scrollMarginTop: '100px' }}>
-              <h2><MdSpellcheck /> GRAMMAR & SPELLING</h2>
-              <div className="score-explanation" style={{ marginBottom: 12, color: 'var(--text-muted)' }}>Critical errors that hurt your credibility:</div>
+              <h2><MdSpellcheck /> GRAMMAR & SPELLING AUDIT</h2>
+              <div className="score-explanation" style={{ marginBottom: 16, color: 'var(--text-muted)' }}>
+                Specific line-by-line phrasing, typo corrections, and recommended active rewrites:
+              </div>
               {mistakeIssues.length > 0 ? (
-                <ul className="growth-items">
-                  {mistakeIssues.map((issue, i) => (
-                    <li key={i} style={{
-                      color: 'var(--text-main)',
-                      borderLeft: '4px solid var(--status-poor)',
-                      background: '#ffffff',
-                      marginBottom: '12px',
-                      padding: '16px 20px',
-                      borderRadius: '0 12px 12px 0',
-                      border: '1px solid transparent',
-                      borderLeftWidth: '4px',
-                      boxShadow: '0 4px 12px -2px rgba(239, 68, 68, 0.08)',
-                      lineHeight: '1.6'
-                    }}>
-                      <strong style={{ color: '#ef4444', fontWeight: '600', fontSize: '0.95rem', marginRight: '6px' }}>Correction Needed:</strong> {issue.text}
-                    </li>
-                  ))}
-                </ul>
+                <ExpandableAuditList
+                  items={mistakeIssues}
+                  type="grammar"
+                  initialLimit={2}
+                  expanded={expandedGrammar}
+                  onToggle={() => setExpandedGrammar(!expandedGrammar)}
+                />
               ) : (
-                <div style={{ textAlign: 'center', padding: '30px', background: 'var(--bg-panel-hover)', borderRadius: '12px', border: '1px solid var(--border-subtle)', color: 'var(--text-muted)' }}>
-                  <div>No critical grammar issues detected.</div>
+                <div style={{ textAlign: 'center', padding: '24px', background: '#ecfdf5', borderRadius: '10px', border: '1px solid #a7f3d0', color: '#065f46', fontWeight: '600' }}>
+                  ✓ No critical grammar issues detected. Outstanding proofreading!
                 </div>
               )}
             </div>
 
-            {/* 3) QUICK FIXES (Replaces Action Plan) */}
+            {/* 3) HIGH-IMPACT QUICK FIXES */}
             <div ref={fixesRef} id="fixes" className="analysis-card" style={{ scrollMarginTop: '100px' }}>
-              <h2><MdBuild /> QUICK FIXES</h2>
-              <div className="score-explanation" style={{ marginBottom: 12 }}>Immediate improvements you can make:</div>
+              <h2><MdBuild /> HIGH-IMPACT QUICK FIXES</h2>
+              <div className="score-explanation" style={{ marginBottom: 16, color: 'var(--text-muted)' }}>
+                Actionable bullet point rewrites and metric enhancements to maximize ATS score:
+              </div>
 
-              {quickFixesList.length === 0 ? (
+              {quickFixesList.length > 0 ? (
+                <ExpandableAuditList
+                  items={quickFixesList}
+                  type="fix"
+                  initialLimit={2}
+                  expanded={expandedFixes}
+                  onToggle={() => setExpandedFixes(!expandedFixes)}
+                />
+              ) : (
                 <div style={{ textAlign: 'center', padding: '20px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
                   No quick fixes generated. Please re-analyze the resume.
                 </div>
-              ) : (
-                <ul className="strength-items">
-                  {quickFixesList.map((fix, idx) => {
-                    // Helper to highlight keywords like "IMMEDIATE REMOVAL", "CRITICAL", etc.
-                    const highlightKeywords = (text) => {
-                      const keywords = ['IMMEDIATE REMOVAL', 'IMMEDIATELY', 'CRITICAL', 'RED FLAG', 'WARNING', 'REMOVE', 'DELETE', 'ADD', 'INCLUDE'];
-                      const regex = new RegExp(`\\b(${keywords.join('|')})\\b`, 'gi');
-
-                      const parts = text.split(regex);
-                      return parts.map((part, i) => {
-                        if (keywords.some(k => k.toLowerCase() === part.toLowerCase())) {
-                          return <span key={i} style={{ color: '#fbbf24', fontWeight: '700' }}>{part}</span>;
-                        }
-                        return part;
-                      });
-                    };
-
-                    // Ensure we have a category. If missing, try to infer or default to 'ACTION'.
-                    let displayFix = fix;
-                    let colonIndex = fix.indexOf(':');
-
-                    // If no colon found, or it's too far into the sentence (likely not a category), force a category
-                    if (colonIndex === -1 || colonIndex > 25) {
-                      const upperFix = fix.toUpperCase();
-                      let inferredCategory = 'ACTION';
-
-                      // Smart inference based on content keywords
-                      if (upperFix.includes('EDUCATION') || upperFix.includes('COLLEGE') || upperFix.includes('DEGREE') || upperFix.includes('GPA')) {
-                        inferredCategory = 'EDUCATION';
-                      } else if (upperFix.includes('SKILL') || upperFix.includes('TECHNOLOG') || upperFix.includes('LANGUAGE') || upperFix.includes('TOOL') || upperFix.includes('GIT') || upperFix.includes('SQL')) {
-                        inferredCategory = 'SKILLS';
-                      } else if (upperFix.includes('PROJECT')) {
-                        inferredCategory = 'PROJECTS';
-                      } else if (upperFix.includes('SUMMARY') || upperFix.includes('OBJECTIVE') || upperFix.includes('PROFILE')) {
-                        inferredCategory = 'SUMMARY';
-                      } else if (upperFix.includes('EXPERIENCE') || upperFix.includes('WORK') || upperFix.includes('INTERNSHIP') || upperFix.includes('JOB')) {
-                        inferredCategory = 'EXPERIENCE';
-                      } else if (upperFix.includes('FORMAT') || upperFix.includes('LAYOUT') || upperFix.includes('FONT')) {
-                        inferredCategory = 'FORMATTING';
-                      } else {
-                        // Fallback to verb check if no context found
-                        const firstWord = fix.split(' ')[0].toUpperCase();
-                        if (['DELETE', 'REMOVE', 'ADD', 'FIX', 'CORRECT', 'CLARIFY', 'QUANTIFY'].includes(firstWord)) {
-                          inferredCategory = firstWord;
-                        }
-                      }
-
-                      displayFix = `${inferredCategory}: ${fix}`;
-                      colonIndex = displayFix.indexOf(':');
-                    }
-
-                    const category = displayFix.substring(0, colonIndex);
-                    const content = displayFix.substring(colonIndex + 1);
-
-                    return (
-                      <li key={idx} style={{ borderLeft: '4px solid var(--accent-primary)', borderRadius: '0 8px 8px 0', background: '#ffffff', padding: '12px 16px', marginBottom: '8px', border: '1px solid transparent', borderLeftWidth: '4px', boxShadow: '0 4px 12px -2px rgba(16, 185, 129, 0.08)' }}>
-                        <strong style={{ color: 'var(--accent-primary)', marginRight: '8px' }}>→</strong>
-                        <span>
-                          <strong style={{ color: 'var(--accent-primary)', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em', marginRight: '6px' }}>
-                            {category}:
-                          </strong>
-                          {content}
-                        </span>
-                      </li>
-                    );
-                  })}
-                </ul>
               )}
             </div>
 
+
+
+
+
+
+
+
             {/* 4) Skill & Keyword Gap Analysis */}
             <div ref={skillsRef} id="skills" className="analysis-card" style={{ scrollMarginTop: '100px' }}>
-              <h2><MdDescription /> SKILL & KEYWORD GAPS</h2>
-              <div className="score-explanation" style={{ marginBottom: 12, color: 'var(--text-muted)' }}>Boost your visibility with these key terms.</div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 20, marginBottom: 12 }}>
-                <div style={{ background: '#ffffff', borderRadius: '12px', padding: '24px', border: '1px solid rgba(16, 185, 129, 0.15)', boxShadow: '0 8px 16px -4px rgba(16, 185, 129, 0.12)' }}>
-                  <div style={{ fontSize: '0.85rem', fontWeight: '700', color: 'var(--accent-primary)', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>✓ Strong Skills</div>
-                  {presentSkills.length > 0 ? (
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                      {presentSkills.map((skill, idx) => (
-                        <span key={idx} style={{
-                          padding: '6px 12px',
-                          borderRadius: '20px',
-                          background: '#ecfdf5',
-                          color: '#065f46',
-                          fontSize: '0.82rem',
-                          fontWeight: '600',
-                          border: '1px solid #a7f3d0'
-                        }}>
-                          ✓ {skill}
-                        </span>
+              <h2><MdDescription /> RECOMMENDED KEYWORDS TO ADD</h2>
+              <div className="score-explanation" style={{ marginBottom: 14, color: 'var(--text-muted)' }}>
+                Click any keyword to copy to clipboard and paste directly into your resume skills section:
+              </div>
+
+              {(() => {
+                const presentNormalized = presentSkills.map(s => String(s).toLowerCase().trim());
+                // Smart filter to prevent contradictions (e.g. MERN vs React)
+                const uniqueMissing = missingKeywords.filter(skill => {
+                  const sLow = String(skill).toLowerCase().trim();
+                  return !presentNormalized.some(p => p.includes(sLow) || sLow.includes(p));
+                });
+
+                if (uniqueMissing.length === 0) {
+                  return (
+                    <div style={{ padding: '16px', background: '#ecfdf5', borderRadius: '8px', border: '1px solid #a7f3d0', color: '#065f46', fontWeight: '600', fontSize: '0.9rem' }}>
+                      ✓ Your resume already includes all essential keywords for {jobRole}!
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="compact-skills-wrapper">
+                    <div className="compact-skills-cloud">
+                      {uniqueMissing.map((skill, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          className="compact-skill-btn"
+                          onClick={(e) => {
+                            navigator.clipboard.writeText(skill);
+                            const btn = e.currentTarget;
+                            const originalText = btn.innerText;
+                            btn.innerText = `✓ Copied!`;
+                            btn.classList.add('copied');
+                            setTimeout(() => {
+                              btn.innerText = originalText;
+                              btn.classList.remove('copied');
+                            }, 1800);
+                          }}
+                          title={`Click to copy ${skill}`}
+                        >
+                          <span className="plus-sign">+</span> {skill}
+                        </button>
                       ))}
                     </div>
-                  ) : (
-                    <div style={{ fontSize: '0.9rem', color: 'var(--text-dim)', fontStyle: 'italic' }}>No skills detected</div>
-                  )}
-                </div>
-                <div style={{ background: '#ffffff', borderRadius: '12px', padding: '24px', border: '1px solid rgba(245, 158, 11, 0.15)', boxShadow: '0 8px 16px -4px rgba(245, 158, 11, 0.12)' }}>
-                  <div style={{ fontSize: '0.85rem', fontWeight: '700', color: 'var(--status-fair)', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>→ Missing Skills</div>
-                  {missingKeywords.length > 0 ? (
-                    <div className="missing-skills-grid" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: 0, justifyContent: 'flex-start' }}>
-                      {missingKeywords.map((skill, idx) => {
-                        const info = getSkillInfo(skill, jobRole);
-                        return (
-                          <div key={idx} className="interactive-skill-chip-wrapper">
-                            <span className="interactive-skill-chip">
-                              ⚠ {skill}
-                            </span>
-                            <div className="skill-tooltip">
-                              <div className="skill-tooltip-header">
-                                💡 Why it matters
-                              </div>
-                              <div className="skill-tooltip-section">
-                                {info.why}
-                              </div>
-                              <div className="skill-tooltip-header" style={{ color: '#34d399', marginTop: '12px' }}>
-                                🛠️ Project Application
-                              </div>
-                              <div className="skill-tooltip-section">
-                                <strong>Try this:</strong> {info.project}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div style={{ fontSize: '0.9rem', color: 'var(--text-dim)', fontStyle: 'italic' }}>All key skills present</div>
-                  )}
-                  {missingKeywords.length > 0 && (
-                    <div style={{ marginTop: '14px', fontSize: '0.8rem', color: 'var(--text-dim)', fontStyle: 'italic' }}>
-                      * Hover over any missing skill to reveal recruiter motivations and actionable project ideas.
-                    </div>
-                  )}
-                </div>
-              </div>
+                  </div>
+                );
+              })()}
             </div>
+
+
+
 
 
 
@@ -913,27 +1052,25 @@ const StoryGeneration = ({ resumeData, onSaveToHistory, onBack }) => {
 
                 <div>
                   <label style={{ fontSize: '0.85rem', fontWeight: '700', textTransform: 'uppercase', color: 'var(--text-muted)', display: 'block', marginBottom: '8px' }}>Length</label>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <input
-                      type="range"
-                      min="0"
-                      max="2"
-                      value={coverLetterLength === 'short' ? 0 : coverLetterLength === 'medium' ? 1 : 2}
-                      onChange={(e) => {
-                        const val = parseInt(e.target.value);
-                        setCoverLetterLength(val === 0 ? 'short' : val === 1 ? 'medium' : 'long');
-                      }}
-                      style={{
-                        flex: 1,
-                        accentColor: 'var(--accent-primary)',
-                        cursor: 'pointer'
-                      }}
-                    />
-                    <span style={{ fontSize: '0.9rem', fontWeight: '600', width: '70px', textTransform: 'capitalize', color: 'var(--text-main)' }}>
-                      {coverLetterLength}
-                    </span>
+                  <div className="segmented-length-control">
+                    {[
+                      { id: 'short', label: 'Short', desc: 'Email Note (2 paragraphs)' },
+                      { id: 'medium', label: 'Medium', desc: 'Standard Letter (3-4 paragraphs)' },
+                      { id: 'long', label: 'Long', desc: 'Executive (Full detailed)' }
+                    ].map(l => (
+                      <button
+                        key={l.id}
+                        type="button"
+                        className={`segmented-length-btn ${coverLetterLength === l.id ? 'active' : ''}`}
+                        onClick={() => setCoverLetterLength(l.id)}
+                      >
+                        <span className="length-title">{l.label}</span>
+                        <span className="length-desc">{l.desc}</span>
+                      </button>
+                    ))}
                   </div>
                 </div>
+
 
                 <button
                   type="button"

@@ -44,17 +44,14 @@ RETURN YOUR ANALYSIS STRICTLY IN THIS VALID JSON FORMAT (DO NOT ADD MARKDOWN FEN
     "formatting": <Number 0-10>
   },
   "grammarSpelling": [
-    "<String: Exact quote or line from resume with specific correction e.g. 'Found pronoun \"I built\": Replace with \"Engineered...\"'>",
-    "<String: Line-by-line grammar or active voice improvement>",
-    "<String: Typo or phrasing correction>"
+    "<String: CATEGORY: Found weak phrasing or typo in 'Original text' -> Replace with: 'Polished active voice rewrite'>",
+    "<String: CATEGORY: Pronoun or typo in 'Original text' -> Replace with: 'Polished active voice rewrite'>"
   ],
   "quickFixes": [
-    "<String: CATEGORY: Specific actionable fix 1 with exact example rewrite>",
-    "<String: CATEGORY: Specific actionable fix 2 with exact example rewrite>",
-    "<String: CATEGORY: Specific actionable fix 3 with exact example rewrite>",
-    "<String: CATEGORY: Specific actionable fix 4 with exact example rewrite>",
-    "<String: CATEGORY: Specific actionable fix 5 with exact example rewrite>"
+    "<String: CATEGORY: Identified issue in 'Current bullet text' -> Replace with: 'High-impact rewritten bullet with metrics and technical tools'>",
+    "<String: CATEGORY: Missing section or metric in 'Current state' -> Replace with: 'Concrete recommended action'>"
   ],
+
   "recruiterImpression": {
     "verdict": "<'Positive' | 'Neutral' | 'Negative'>",
     "skimTime": "<e.g. '6 seconds'>",

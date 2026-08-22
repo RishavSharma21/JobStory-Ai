@@ -1728,4 +1728,324 @@
 .skill-tooltip-section strong {
   color: #fbbf24;
   font-weight: 600;
-}
+}
+
+/* ========================================================= */
+/* --- HUMAN-CRAFTED MINIMALIST AUDIT ITEM (JOB-STORY AI) --- */
+/* ========================================================= */
+.grammarly-cards-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.pro-audit-item {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 16px 20px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.pro-audit-item:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.pro-audit-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  gap: 12px;
+}
+
+.pro-tag-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pro-category-tag {
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #0f172a;
+  background: #f1f5f9;
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+.pro-location-tag {
+  font-size: 0.78rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+/* --- VERCEL/GITHUB STYLE MINIMALIST GHOST COPY BUTTON --- */
+.pro-copy-button {
+  background: transparent;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+  font-size: 0.76rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.pro-copy-button:hover {
+  background: #f8fafc;
+  color: #0f172a;
+  border-color: #cbd5e1;
+}
+
+.pro-copy-button.copied {
+  background: #f0fdf4;
+  color: #059669;
+  border-color: #a7f3d0;
+}
+
+
+.pro-audit-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
+.pro-line {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.pro-label {
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: #64748b;
+  letter-spacing: 0.04em;
+  min-width: 75px;
+  flex-shrink: 0;
+}
+
+.pro-label.green {
+  color: #059669;
+}
+
+.pro-text-old {
+  color: #64748b;
+  font-weight: 400;
+}
+
+.pro-text-new {
+  color: #064e3b;
+  font-weight: 600;
+  background: #f0fdf4;
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid #d1fae5;
+  flex: 1;
+}
+
+.pro-text-simple {
+  color: #334155;
+  font-weight: 500;
+}
+
+.pro-audit-reason {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid #f1f5f9;
+  font-size: 0.82rem;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+/* ========================================================= */
+/* --- COMPACT INTERACTIVE SKILL PILL CLOUD (JOB-STORY AI) --- */
+/* ========================================================= */
+.compact-skills-wrapper {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 18px 20px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.compact-skills-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.compact-skill-btn {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  color: #1e293b;
+  font-size: 0.85rem;
+  font-weight: 700;
+  padding: 7px 14px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.compact-skill-btn .plus-sign {
+  color: #059669;
+  font-weight: 800;
+}
+
+.compact-skill-btn:hover {
+  background: #ecfdf5;
+  color: #047857;
+  border-color: #a7f3d0;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.15);
+}
+
+.compact-skill-btn.copied {
+  background: #10b981;
+  color: #ffffff;
+  border-color: #10b981;
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);
+}
+
+/* --- NOTION/LINEAR ICON COPY BUTTON --- */
+.icon-copy-btn {
+  background: #f8fafc;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.icon-copy-btn:hover {
+  background: #ffffff;
+  color: #0f172a;
+  border-color: #cbd5e1;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.icon-copy-btn.copied {
+  background: #ecfdf5;
+  color: #047857;
+  border-color: #a7f3d0;
+}
+
+/* --- LINEAR STYLE SECTION DIVIDER SHOW MORE BUTTON --- */
+.linear-show-more-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  margin-top: 16px;
+}
+
+.linear-show-more-wrapper::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  background: #e2e8f0;
+  z-index: 0;
+}
+
+.linear-show-more-btn {
+  position: relative;
+  z-index: 1;
+  background: #ffffff;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 6px 16px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  letter-spacing: 0.03em;
+}
+
+/* --- SEGMENTED COVER LETTER LENGTH CONTROL --- */
+.segmented-length-control {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+}
+
+.segmented-length-btn {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 12px 14px;
+  cursor: pointer;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.segmented-length-btn:hover {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+
+.segmented-length-btn.active {
+  background: #ecfdf5;
+  border: 2px solid #10b981;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
+}
+
+.segmented-length-btn .length-title {
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.segmented-length-btn.active .length-title {
+  color: #047857;
+}
+
+.segmented-length-btn .length-desc {
+  font-size: 0.76rem;
+  color: #64748b;
+  line-height: 1.35;
+}
+
+.segmented-length-btn.active .length-desc {
+  color: #065f46;
+}
+
+
+
+
+
+
+
+
