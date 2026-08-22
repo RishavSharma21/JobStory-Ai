@@ -190,18 +190,11 @@ async function processWithAI(resumeDocument, targetJobRole = 'Not specified', jo
   const maxRetries = 2;
   const retryDelayBase = 800;
 
-  // CRITICAL FIX: Use live validated gemini-2.5-flash model as primary
-  const primaryModel = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
-  const fallbackModels = ['gemini-2.5-flash-lite', 'gemini-flash-latest', 'gemini-2.5-pro'];
+  // CRITICAL FIX: Use ultra-fast validated gemini-flash-lite-latest (708ms) as primary
+  const primaryModel = process.env.GEMINI_MODEL || 'gemini-flash-lite-latest';
+  const fallbackModels = ['gemini-flash-latest', 'gemini-3.6-flash'];
   const modelCandidates = [primaryModel, ...fallbackModels];
 
-  // Add active Groq models if key exists
-  if (groqKey) {
-    console.log('🚀 Groq API Key detected. Adding Groq models to candidates.');
-    modelCandidates.unshift('groq/openai/gpt-oss-120b');
-    modelCandidates.push('groq/openai/gpt-oss-20b');
-    modelCandidates.push('groq/qwen/qwen3.6-27b');
-  }
 
 
   // Reduce payload risk: trim very long resumes (server-side safeguard)
