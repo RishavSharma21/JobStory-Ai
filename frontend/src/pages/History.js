@@ -1,9 +1,9 @@
 // src/pages/History.js - Enhanced History Page with Premium Light Theme
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MdSearch, MdAdd, MdDelete, MdDescription, MdWork, MdMoreVert, MdDownload, MdHistory, MdSort, MdCalendarToday } from 'react-icons/md';
+import { MdSearch, MdAdd, MdDelete, MdDescription, MdWork, MdMoreVert, MdDownload, MdHistory, MdSort, MdCalendarToday, MdRefresh } from 'react-icons/md';
 import './History.css';
-import { getAllResumes, getResume, deleteResume, API_BASE_URL } from '../utils/api';
+import { getAllResumes, getResume, deleteResume, resetDemoData, API_BASE_URL } from '../utils/api';
 import { generateCompleteReport } from '../utils/pdfDownload';
 
 // ... imports ...
@@ -20,7 +20,30 @@ const History = ({ historyItems, onViewItem, onDeleteItem }) => {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
   const [loadingItemId, setLoadingItemId] = useState(null); // Track item loading state
+  const [resettingDemo, setResettingDemo] = useState(false);
   const navigate = useNavigate();
+
+  const user = React.useMemo(() => {
+    try { return JSON.parse(localStorage.getItem('user') || '{}'); } catch (_) { return {}; }
+  }, []);
+  const isDemoUser = Boolean(user.email?.includes('demo'));
+
+  const handleResetDemo = async () => {
+    if (!window.confirm('Reset Demo history to clean sample resume state?')) return;
+    setResettingDemo(true);
+    try {
+      await resetDemoData();
+      const response = await getAllResumes();
+      if (response.success && response.resumes) {
+        setBackendResumes(response.resumes);
+      }
+      setDeletedItemIds([]);
+    } catch (err) {
+      console.error('Failed to reset demo history:', err);
+    } finally {
+      setResettingDemo(false);
+    }
+  };
 
   // ... (keeping existing useEffects)
 
@@ -354,13 +377,40 @@ const History = ({ historyItems, onViewItem, onDeleteItem }) => {
               </span>
               <span className="stat-text">Your personalized career insights</span>
             </p>
+          <div className="header-actions" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+            {isDemoUser && (
+              <button 
+                className="btn-reset-demo" 
+                onClick={handleResetDemo}
+                disabled={resettingDemo}
+                style={{
+                  background: '#ffffff',
+                  color: '#dc2626',
+                  border: '1.5px solid #fca5a5',
+                  borderRadius: '12px',
+                  padding: '10px 16px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  fontSize: '0.9rem',
+                  boxShadow: '0 2px 6px rgba(220, 38, 38, 0.08)',
+                  transition: 'all 0.2s'
+                }}
+              >
+                <MdRefresh style={{ fontSize: '18px' }} />
+                <span>{resettingDemo ? 'Resetting...' : 'Reset Demo Data'}</span>
+              </button>
+            )}
+            <button className="btn-primary-enhanced" onClick={() => navigate('/')}>
+              <MdAdd style={{ fontSize: '20px' }} />
+              <span>Analyze New Resume</span>
+              <div className="btn-glow"></div>
+            </button>
           </div>
-          <button className="btn-primary-enhanced" onClick={() => navigate('/')}>
-            <MdAdd style={{ fontSize: '20px' }} />
-            <span>Analyze New Resume</span>
-            <div className="btn-glow"></div>
-          </button>
         </div>
+
 
         {/* Search and Sort */}
         <div className="controls">

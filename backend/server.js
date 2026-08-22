@@ -29,12 +29,25 @@ app.use(cors());                           // Enable cross-origin requests
 app.use(express.json());                   // Parse JSON bodies
 app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies
 
+let authRoutes;
+try {
+  authRoutes = require('./routes/auth');
+  app.use('/api/auth', authRoutes);
+} catch (e) {
+  console.error('[Route Load] auth routes failed:', e?.message);
+}
+
 // Connect to MongoDB database with fallback
 const mongoURI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/resume-analyzer';
 mongoose.connect(mongoURI, {
   serverSelectionTimeoutMS: 5000 // Fast timeout (5s) for quick fallback
 })
-  .then(() => console.log('Connected to MongoDB'))
+  .then(() => {
+    console.log('Connected to MongoDB');
+    if (authRoutes && typeof authRoutes.seedDemoUser === 'function') {
+      authRoutes.seedDemoUser();
+    }
+  })
   .catch((err) => {
     console.error(`MongoDB connection error for ${mongoURI}:`, err?.message || err);
     const fallbackURI = 'mongodb://127.0.0.1:27017/resume-analyzer';
@@ -43,7 +56,12 @@ mongoose.connect(mongoURI, {
       mongoose.connect(fallbackURI, {
         serverSelectionTimeoutMS: 5000
       })
-        .then(() => console.log('Connected to local MongoDB fallback successfully'))
+        .then(() => {
+          console.log('Connected to local MongoDB fallback successfully');
+          if (authRoutes && typeof authRoutes.seedDemoUser === 'function') {
+            authRoutes.seedDemoUser();
+          }
+        })
         .catch((localErr) => console.error('Local MongoDB fallback also failed:', localErr?.message || localErr));
     }
   });
@@ -72,12 +90,6 @@ try {
   app.use('/api/ai', fallback);
 }
 
-// Auth Routes (New)
-try {
-  app.use('/api/auth', require('./routes/auth'));
-} catch (e) {
-  console.error('[Route Load] auth routes failed:', e?.message);
-}
 
 // Test route - Visit http://localhost:5000 to see if server is running
 app.get('/', (req, res) => {

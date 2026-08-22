@@ -261,7 +261,20 @@ const getRoleBasedFallbackQuestions = (role) => {
   ];
 };
 
+export const resetDemoData = async () => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/auth/reset-demo`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    return await response.json();
+  } catch (err) {
+    console.error('Reset Demo Data Error:', err);
+    return { success: false, error: err.message };
+  }
+};
+
 // Helper to safely parse JSON from a Response
 async function safeJson(response) {
   try { return await response.json(); } catch (_) { return null; }
-}
+}

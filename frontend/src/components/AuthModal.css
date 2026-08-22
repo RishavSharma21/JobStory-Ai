@@ -229,3 +229,79 @@
     color: #DB4437;
     /* Google Red */
 }
+
+/* --- Secondary Auth Buttons Layout --- */
+.auth-options {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.demo-auth-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 12px;
+    background: #ecfdf5;
+    border: 1px solid #a7f3d0;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #047857;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.demo-auth-btn:hover {
+    background-color: #d1fae5;
+    border-color: #10b981;
+    color: #065f46;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
+    transform: translateY(-1px);
+}
+
+.demo-auth-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.demo-bolt-icon {
+    font-size: 1.1rem;
+    color: #10b981;
+}
+
+
+/* --- Password Toggle Wrapper --- */
+.password-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.password-input-wrapper input {
+    width: 100%;
+    padding-right: 42px;
+}
+
+.password-toggle-btn {
+    position: absolute;
+    right: 12px;
+    background: none;
+    border: none;
+    color: #6b7280;
+    cursor: pointer;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    border-radius: 4px;
+    transition: color 0.2s ease;
+}
+
+.password-toggle-btn:hover {
+    color: #111827;
+}
